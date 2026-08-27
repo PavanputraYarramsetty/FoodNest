@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { User, Phone, Building, CheckCircle, AlertCircle, Lock, Eye, EyeOff, Save } from 'lucide-react';
@@ -7,6 +7,13 @@ import AnimatedTabs from '../../components/ui/AnimatedTabs';
 import AlertBanner from '../../components/ui/AlertBanner';
 import MotionButton from '../../components/ui/MotionButton';
 
+const normalizeBlock = (block) => {
+  if (!block) return '';
+  if (block === 'F Block') return 'F Block (Old)';
+  if (block === 'Other' || block === 'Others') return 'Others(A, B, C, D, F)';
+  return block;
+};
+
 const Profile = () => {
   const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState('view');
@@ -14,8 +21,18 @@ const Profile = () => {
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
-    hostelBlock: user?.hostelBlock || ''
+    hostelBlock: normalizeBlock(user?.hostelBlock) || 'F Block (Old)'
   });
+
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || '',
+        phone: user.phone || '',
+        hostelBlock: normalizeBlock(user.hostelBlock) || 'F Block (Old)'
+      });
+    }
+  }, [user]);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -158,7 +175,7 @@ const Profile = () => {
                 <Building size={20} className="detail-row-icon" />
                 <div>
                   <div className="detail-row-label">Hostel Block</div>
-                  <div className="detail-row-value">{user?.hostelBlock || 'Not specified'}</div>
+                  <div className="detail-row-value">{normalizeBlock(user?.hostelBlock) || 'Not specified'}</div>
                 </div>
               </div>
             </div>
