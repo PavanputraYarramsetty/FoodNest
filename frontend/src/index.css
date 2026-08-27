@@ -684,6 +684,16 @@
   background: #16a34a;
 }
 
+.btn-info {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-info:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
@@ -815,6 +825,13 @@ select.form-input {
   background: var(--warning-bg);
   color: var(--warning);
   border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.badge-preparing {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.12);
 }
 
 .badge-completed {

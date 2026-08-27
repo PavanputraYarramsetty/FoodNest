@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ShoppingBag, DollarSign, Clock, CheckCircle } from 'lucide-react';
+import { ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import StatCard from '../../components/ui/StatCard';
 import LoadingState from '../../components/ui/LoadingState';
 import Lazy3D from '../../components/3d/Lazy3D';
 
 const AdminHome = () => {
-  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, pendingOrders: 0, completedOrders: 0 });
+  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, pendingOrders: 0, preparingOrders: 0, completedOrders: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,12 +24,14 @@ const AdminHome = () => {
       const orders = ordersRes.data.data;
       const activeOrders = orders.filter(o => o.status !== 'Cancelled');
       const pending = orders.filter(o => o.status === 'Pending').length;
+      const preparing = orders.filter(o => o.status === 'Preparing').length;
       const completed = orders.filter(o => o.status === 'Completed').length;
 
       setStats({
         totalOrders: activeOrders.length,
         totalRevenue: revenueRes.data.data.totalRevenue,
         pendingOrders: pending,
+        preparingOrders: preparing,
         completedOrders: completed
       });
     } catch (err) {
@@ -46,7 +48,8 @@ const AdminHome = () => {
   const statItems = [
     { icon: ShoppingBag, value: stats.totalOrders, label: 'Total Orders', color: 'orange' },
     { icon: DollarSign, value: `₹${stats.totalRevenue}`, label: 'Total Revenue', color: 'green' },
-    { icon: Clock, value: stats.pendingOrders, label: 'Pending Orders', color: 'blue' },
+    { icon: Clock, value: stats.pendingOrders, label: 'Pending Orders', color: 'orange' },
+    { icon: ChefHat, value: stats.preparingOrders, label: 'Preparing Orders', color: 'blue' },
     { icon: CheckCircle, value: stats.completedOrders, label: 'Completed Orders', color: 'green' },
   ];
 

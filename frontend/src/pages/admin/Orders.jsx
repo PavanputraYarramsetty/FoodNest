@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X } from 'lucide-react';
+import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
@@ -128,6 +128,7 @@ const AdminOrders = () => {
           <select className="form-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} id="order-status-filter">
             <option value="">All</option>
             <option value="Pending">Pending</option>
+            <option value="Preparing">Preparing</option>
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
@@ -211,20 +212,51 @@ const AdminOrders = () => {
                   <td data-label="Date" style={{ fontSize: '0.85rem' }}>{formatDate(order.created_at)}</td>
                   <td data-label="Action">
                     <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                      {order.status === 'Pending' ? (
-                        <MotionButton className="btn btn-success btn-sm" onClick={() => updateStatus(order.id, 'Completed')} title="Mark as Completed">
+                      {order.status === 'Pending' && (
+                        <MotionButton
+                          className="btn btn-info btn-sm"
+                          onClick={() => updateStatus(order.id, 'Preparing')}
+                          title="Start Preparing"
+                          id={`preparing-order-${order.id}`}
+                        >
+                          <ChefHat size={14} />
+                        </MotionButton>
+                      )}
+                      {(order.status === 'Pending' || order.status === 'Preparing') && (
+                        <MotionButton
+                          className="btn btn-success btn-sm"
+                          onClick={() => updateStatus(order.id, 'Completed')}
+                          title="Mark as Completed"
+                          id={`complete-order-${order.id}`}
+                        >
                           <CheckCircle size={14} />
                         </MotionButton>
-                      ) : (
-                        <MotionButton className="btn btn-ghost btn-sm" onClick={() => updateStatus(order.id, 'Pending')} title="Revert to Pending">
+                      )}
+                      {order.status === 'Preparing' && (
+                        <MotionButton
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => updateStatus(order.id, 'Pending')}
+                          title="Revert to Pending"
+                          id={`revert-pending-order-${order.id}`}
+                        >
+                          <Clock size={14} />
+                        </MotionButton>
+                      )}
+                      {order.status === 'Completed' && (
+                        <MotionButton
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => updateStatus(order.id, 'Preparing')}
+                          title="Revert to Preparing"
+                          id={`revert-preparing-order-${order.id}`}
+                        >
                           <Clock size={14} />
                         </MotionButton>
                       )}
                       {order.status !== 'Cancelled' && (
                         <MotionButton
                           className="btn btn-danger btn-sm"
-                          onClick={() => { if (window.confirm('Are you sure?')) updateStatus(order.id, 'Cancelled'); }}
-                          title="Cancel (Delete) Order"
+                          onClick={() => { if (window.confirm('Are you sure you want to cancel this order?')) updateStatus(order.id, 'Cancelled'); }}
+                          title="Cancel Order"
                           id={`delete-order-${order.id}`}
                         >
                           <Trash2 size={14} />

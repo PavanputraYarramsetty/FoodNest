@@ -38,8 +38,9 @@ export const statusBadgeVariant = (status) => {
     case 'active':
       return 'success';
     case 'pending':
-    case 'preparing':
       return 'warning';
+    case 'preparing':
+      return 'info';
     case 'cancelled':
     case 'canceled':
     case 'blocked':
