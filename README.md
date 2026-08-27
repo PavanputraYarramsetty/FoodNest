@@ -74,7 +74,6 @@ From the project root:
 # Install dependencies in both folders
 npm run install-all
 
-developed by pavanputra
 
 # Start both backend and frontend development servers concurrently
 npm start
@@ -82,4 +81,3 @@ npm start
 - **Frontend URL:** `http://localhost:5173`
 - **Backend URL:** `http://localhost:5000`
 
-hi everyone
