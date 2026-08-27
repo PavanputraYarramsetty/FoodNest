@@ -40,21 +40,27 @@ router.put('/menu/visibility', async (req, res) => {
 // POST /api/admin/menu — Add a new menu item
 router.post('/menu', async (req, res) => {
   try {
-    const { itemName, price, category, isAvailable, isVeg } = req.body;
+    const { itemName, price, category, isAvailable, isVeg, imageUrl, image_url } = req.body;
 
     if (!itemName || price === undefined) {
       return res.status(400).json({ success: false, message: 'Item name and price are required' });
     }
 
+    const payload = {
+      item_name: itemName,
+      price,
+      category: category || 'General',
+      is_available: isAvailable !== undefined ? isAvailable : true,
+      is_veg: isVeg !== undefined ? isVeg : true
+    };
+
+    if (imageUrl !== undefined || image_url !== undefined) {
+      payload.image_url = imageUrl !== undefined ? imageUrl : image_url;
+    }
+
     const { data: menuItem, error } = await supabase
       .from('menu_items')
-      .insert({
-        item_name: itemName,
-        price,
-        category: category || 'General',
-        is_available: isAvailable !== undefined ? isAvailable : true,
-        is_veg: isVeg !== undefined ? isVeg : true
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -91,17 +97,20 @@ router.get('/menu', async (req, res) => {
 // PUT /api/admin/menu/:id — Edit a menu item
 router.put('/menu/:id', async (req, res) => {
   try {
-    const { itemName, price, category, isAvailable, isVeg } = req.body;
+    const { itemName, price, category, isAvailable, isVeg, imageUrl, image_url } = req.body;
+
+    const payload = {};
+    if (itemName !== undefined) payload.item_name = itemName;
+    if (price !== undefined) payload.price = price;
+    if (category !== undefined) payload.category = category;
+    if (isAvailable !== undefined) payload.is_available = isAvailable;
+    if (isVeg !== undefined) payload.is_veg = isVeg;
+    if (imageUrl !== undefined) payload.image_url = imageUrl;
+    else if (image_url !== undefined) payload.image_url = image_url;
 
     const { data: menuItem, error } = await supabase
       .from('menu_items')
-      .update({
-        item_name: itemName,
-        price,
-        category,
-        is_available: isAvailable,
-        is_veg: isVeg
-      })
+      .update(payload)
       .eq('id', req.params.id)
       .select()
       .single();

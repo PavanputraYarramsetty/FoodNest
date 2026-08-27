@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Eye, EyeOff, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, X, CheckCircle, AlertCircle, Image as ImageIcon, Upload, Link as LinkIcon, UtensilsCrossed } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AnimatedModal from '../../components/ui/AnimatedModal';
 import AlertBanner from '../../components/ui/AlertBanner';
@@ -12,9 +12,11 @@ const ManageMenu = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [formData, setFormData] = useState({ itemName: '', price: '', category: '', isAvailable: true, isVeg: true });
+  const [formData, setFormData] = useState({ itemName: '', price: '', category: '', isAvailable: true, isVeg: true, imageUrl: '' });
+  const [imageMode, setImageMode] = useState('url'); // 'url' | 'upload'
   const [message, setMessage] = useState({ type: '', text: '' });
   const [menuVisible, setMenuVisible] = useState(true);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchMenu();
@@ -56,7 +58,8 @@ const ManageMenu = () => {
 
   const openAddModal = () => {
     setEditItem(null);
-    setFormData({ itemName: '', price: '', category: '', isAvailable: true, isVeg: true });
+    setFormData({ itemName: '', price: '', category: '', isAvailable: true, isVeg: true, imageUrl: '' });
+    setImageMode('url');
     setShowModal(true);
   };
 
@@ -67,9 +70,55 @@ const ManageMenu = () => {
       price: item.price.toString(),
       category: item.category || '',
       isAvailable: item.is_available,
-      isVeg: item.is_veg !== false
+      isVeg: item.is_veg !== false,
+      imageUrl: item.image_url || ''
     });
+    setImageMode(item.image_url?.startsWith('data:') ? 'upload' : 'url');
     setShowModal(true);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (JPG, PNG, WebP, etc.)');
+      return;
+    }
+
+    // Compress & resize image to max 800x800 for optimal fast loading
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setFormData(prev => ({ ...prev, imageUrl: compressedDataUrl }));
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
@@ -77,7 +126,8 @@ const ManageMenu = () => {
     try {
       const data = {
         ...formData,
-        price: parseFloat(formData.price)
+        price: parseFloat(formData.price),
+        imageUrl: formData.imageUrl.trim() || null
       };
 
       if (editItem) {
@@ -125,7 +175,7 @@ const ManageMenu = () => {
     <div>
       <PageHeader
         title="Manage Menu"
-        subtitle="Add, edit, or remove menu items"
+        subtitle="Add, edit, or remove menu items with images"
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <MotionButton 
@@ -152,6 +202,7 @@ const ManageMenu = () => {
         <table className="table table-responsive-cards">
           <thead>
             <tr>
+              <th style={{ width: '60px' }}>Image</th>
               <th>Item Name</th>
               <th>Price</th>
               <th>Category</th>
@@ -162,6 +213,25 @@ const ManageMenu = () => {
           <tbody>
             {menuItems.map(item => (
               <tr key={item.id}>
+                <td data-label="Image">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.item_name}
+                      className="menu-table-thumb"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="menu-table-thumb-placeholder"
+                    style={{ display: item.image_url ? 'none' : 'flex' }}
+                  >
+                    <UtensilsCrossed size={18} />
+                  </div>
+                </td>
                 <td data-label="Item" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span className={`veg-indicator ${item.is_veg !== false ? 'veg' : 'non-veg'}`} title={item.is_veg !== false ? 'Veg' : 'Non-Veg'} />
@@ -192,7 +262,7 @@ const ManageMenu = () => {
             ))}
             {menuItems.length === 0 && (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                   No menu items. Click "Add Item" to get started.
                 </td>
               </tr>
@@ -229,6 +299,82 @@ const ManageMenu = () => {
                 <option value="non-veg">Non-Veg</option>
               </select>
             </div>
+
+            {/* Image Input Section */}
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ImageIcon size={16} /> Item Image
+              </label>
+              
+              <div className="image-input-tabs">
+                <button
+                  type="button"
+                  className={`image-tab-btn ${imageMode === 'url' ? 'active' : ''}`}
+                  onClick={() => setImageMode('url')}
+                >
+                  <LinkIcon size={13} style={{ display: 'inline', marginRight: '0.3rem' }} /> Image Link (URL)
+                </button>
+                <button
+                  type="button"
+                  className={`image-tab-btn ${imageMode === 'upload' ? 'active' : ''}`}
+                  onClick={() => {
+                    setImageMode('upload');
+                    if (fileInputRef.current) fileInputRef.current.click();
+                  }}
+                >
+                  <Upload size={13} style={{ display: 'inline', marginRight: '0.3rem' }} /> Upload from Files
+                </button>
+              </div>
+
+              {imageMode === 'url' ? (
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="Paste image link (e.g. https://...)"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  id="menu-item-image-url"
+                />
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
+                  <div className="file-dropzone" onClick={() => fileInputRef.current?.click()}>
+                    <Upload size={24} style={{ color: 'var(--primary-400)' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Click to choose image from your computer</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Supports JPG, PNG, WebP (auto-optimized)</span>
+                  </div>
+                </div>
+              )}
+
+              {formData.imageUrl && (
+                <div className="image-preview-container">
+                  <img
+                    src={formData.imageUrl}
+                    alt="Preview"
+                    className="image-preview-img"
+                    onError={(e) => {
+                      e.target.src = '';
+                      alert('Failed to load image preview. Please check the URL.');
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="image-preview-clear"
+                    onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                    title="Remove Image"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="form-group">
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={formData.isAvailable} onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })} />

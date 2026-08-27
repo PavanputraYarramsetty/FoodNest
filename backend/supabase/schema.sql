@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
   price         NUMERIC(10,2) NOT NULL CHECK (price >= 0),
   is_available  BOOLEAN     NOT NULL DEFAULT TRUE,
   category      TEXT        NOT NULL DEFAULT 'General',
+  image_url     TEXT        DEFAULT NULL,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'motion/react';
-import { ShoppingCart, Plus, Minus, X, CheckCircle, AlertCircle, Package } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, X, CheckCircle, AlertCircle, Package, UtensilsCrossed } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AnimatedModal from '../../components/ui/AnimatedModal';
 import AlertBanner from '../../components/ui/AlertBanner';
@@ -156,36 +156,60 @@ const MenuPage = () => {
                       transition={{ delay: index * 0.04 }}
                       whileHover={{ y: -3, transition: { duration: 0.2 } }}
                     >
-                      <div className="menu-card-header">
-                        <div>
-                          <div className="menu-item-name" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span
-                              className={`veg-indicator ${item.is_veg !== false ? 'veg' : 'non-veg'}`}
-                              title={item.is_veg !== false ? 'Veg' : 'Non-Veg'}
-                            />
-                            {item.item_name}
-                          </div>
-                          <div className="menu-item-category">{item.category || 'General'}</div>
+                      <div className="menu-card-img-wrap">
+                        <div className="menu-card-img-badge">
+                          <span
+                            className={`veg-indicator ${item.is_veg !== false ? 'veg' : 'non-veg'}`}
+                            title={item.is_veg !== false ? 'Veg' : 'Non-Veg'}
+                          />
+                          <span>{item.is_veg !== false ? 'Veg' : 'Non-Veg'}</span>
                         </div>
-                        <div className="menu-item-price">₹{item.price}</div>
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.item_name}
+                            className="menu-card-img"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className="menu-card-img-placeholder"
+                          style={{ display: item.image_url ? 'none' : 'flex' }}
+                        >
+                          <UtensilsCrossed size={36} />
+                        </div>
                       </div>
 
-                      <div className="menu-card-actions">
-                        {cart[item.id] ? (
-                          <div className="quantity-control">
-                            <MotionButton className="quantity-btn" onClick={() => removeFromCart(item.id)} id={`decrease-${item.id}`} aria-label={`Remove one ${item.item_name}`}>
-                              <Minus size={16} />
-                            </MotionButton>
-                            <span className="quantity-value">{cart[item.id].quantity}</span>
-                            <MotionButton className="quantity-btn" onClick={() => addToCart(item)} id={`increase-${item.id}`} aria-label={`Add one more ${item.item_name}`}>
-                              <Plus size={16} />
-                            </MotionButton>
+                      <div className="menu-card-body">
+                        <div className="menu-card-header">
+                          <div>
+                            <div className="menu-item-name">{item.item_name}</div>
+                            <div className="menu-item-category">{item.category || 'General'}</div>
                           </div>
-                        ) : (
-                          <MotionButton className="btn btn-primary btn-sm" onClick={() => addToCart(item)} id={`add-${item.id}`}>
-                            <Plus size={16} /> Add
-                          </MotionButton>
-                        )}
+                          <div className="menu-item-price">₹{item.price}</div>
+                        </div>
+
+                        <div className="menu-card-actions">
+                          {cart[item.id] ? (
+                            <div className="quantity-control" style={{ width: '100%', justifyContent: 'space-between' }}>
+                              <MotionButton className="quantity-btn" onClick={() => removeFromCart(item.id)} id={`decrease-${item.id}`} aria-label={`Remove one ${item.item_name}`}>
+                                <Minus size={16} />
+                              </MotionButton>
+                              <span className="quantity-value">{cart[item.id].quantity}</span>
+                              <MotionButton className="quantity-btn" onClick={() => addToCart(item)} id={`increase-${item.id}`} aria-label={`Add one more ${item.item_name}`}>
+                                <Plus size={16} />
+                              </MotionButton>
+                            </div>
+                          ) : (
+                            <MotionButton className="btn btn-primary btn-sm" onClick={() => addToCart(item)} id={`add-${item.id}`} style={{ width: '100%', justifyContent: 'center' }}>
+                              <Plus size={16} /> Add to Cart
+                            </MotionButton>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -225,8 +249,26 @@ const MenuPage = () => {
           ) : (
             <>
               {Object.values(cart).map(item => (
-                <div className="cart-item" key={item.id}>
-                  <div className="cart-item-info">
+                <div className="cart-item" key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.item_name}
+                      className="menu-table-thumb"
+                      style={{ width: 42, height: 42 }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="menu-table-thumb-placeholder"
+                    style={{ display: item.image_url ? 'none' : 'flex', width: 42, height: 42 }}
+                  >
+                    <UtensilsCrossed size={18} />
+                  </div>
+                  <div className="cart-item-info" style={{ flex: 1 }}>
                     <h4>{item.item_name}</h4>
                     <p>₹{item.price} × {item.quantity}</p>
                   </div>

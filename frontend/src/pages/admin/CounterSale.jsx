@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Minus, ShoppingBag, BarChart3, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, BarChart3, TrendingUp, CheckCircle, AlertCircle, UtensilsCrossed } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AlertBanner from '../../components/ui/AlertBanner';
 import LoadingState from '../../components/ui/LoadingState';
@@ -177,15 +177,35 @@ const CounterSale = () => {
                     transition: 'all var(--transition-fast)'
                   }}
                 >
-                  <div>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {item.item_name}
-                      <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.40rem', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
-                        {item.category}
-                      </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.item_name}
+                        className="menu-table-thumb"
+                        style={{ width: 40, height: 40 }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="menu-table-thumb-placeholder"
+                      style={{ display: item.image_url ? 'none' : 'flex', width: 40, height: 40 }}
+                    >
+                      <UtensilsCrossed size={16} />
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--primary-400)', fontWeight: 500, marginTop: '0.15rem' }}>
-                      ₹{item.price}
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {item.item_name}
+                        <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.40rem', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
+                          {item.category}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary-400)', fontWeight: 500, marginTop: '0.15rem' }}>
+                        ₹{item.price}
+                      </div>
                     </div>
                   </div>
 
