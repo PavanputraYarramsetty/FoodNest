@@ -192,8 +192,8 @@ const Profile = () => {
               <div className="auth-input-wrapper">
                 <Building size={18} className="auth-input-icon" />
                 <select name="hostelBlock" className="form-input" value={profileData.hostelBlock} onChange={handleProfileChange} required>
-                  <option value="F Block">F Block</option>
-                  <option value="Other">Other</option>
+                  <option value="F Block (Old)">F Block (Old)</option>
+                  <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
                 </select>
               </div>
             </div>

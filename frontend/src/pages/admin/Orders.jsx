@@ -137,8 +137,8 @@ const AdminOrders = () => {
           <label className="form-label">Filter by Block</label>
           <select className="form-input" value={blockFilter} onChange={(e) => setBlockFilter(e.target.value)} id="order-block-filter">
             <option value="">All Blocks</option>
-            <option value="F Block">F Block</option>
-            <option value="Other">Other</option>
+            <option value="F Block (Old)">F Block (Old)</option>
+            <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
           </select>
         </div>
         <div className="form-group">

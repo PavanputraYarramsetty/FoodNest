@@ -132,8 +132,8 @@ const Register = () => {
                 id="register-block"
               >
                 <option value="">Select Block</option>
-                <option value="F Block">F Block</option>
-                <option value="Other">Other</option>
+                <option value="F Block (Old)">F Block (Old)</option>
+                <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
               </select>
             </div>
 

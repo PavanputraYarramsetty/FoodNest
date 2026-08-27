@@ -123,8 +123,8 @@ const ManageCustomers = () => {
             id="customer-block-filter"
           >
             <option value="">All Blocks</option>
-            <option value="F Block">F Block</option>
-            <option value="Other">Other</option>
+            <option value="F Block (Old)">F Block (Old)</option>
+            <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
           </select>
         </div>
         {(blockFilter || searchQuery) && (
