@@ -187,6 +187,22 @@ const LandingPage = () => {
           >
             <ScrollingTags />
           </motion.div>
+
+          <motion.a
+            href="#benefits"
+            className="lp-scroll-down-btn"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...transition, delay: 0.8 }}
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('benefits')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            aria-label="Scroll down to see more"
+          >
+            <span>Scroll down to see</span>
+            <ChevronDown size={18} className="lp-scroll-arrow" />
+          </motion.a>
         </div>
       </section>
 

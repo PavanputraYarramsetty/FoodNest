@@ -236,6 +236,49 @@
   100% { transform: translateX(-50%); }
 }
 
+/* Scroll Down To See Indicator */
+.lp-scroll-down-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.lp-scroll-down-btn:hover {
+  background: rgba(249, 115, 22, 0.18);
+  border-color: var(--primary-400);
+  color: #ffffff;
+  transform: translateY(2px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.25);
+}
+
+.lp-scroll-arrow {
+  color: var(--primary-400);
+  animation: scrollDownBounce 1.8s ease-in-out infinite;
+}
+
+@keyframes scrollDownBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
 /* Hero Fading Background */
 .lp-hero-bg {
   position: absolute;
