@@ -35,7 +35,7 @@ const generateInvoice = async (order, user) => {
   // ══════════════════════════════════════════════
   // HEADER — Gradient banner with logo + name
   // ══════════════════════════════════════════════
-  const headerH = 38;
+  const headerH = 48;
 
   // Draw gradient header background (simulate with multiple rects)
   for (let i = 0; i < headerH; i++) {
@@ -59,13 +59,13 @@ const generateInvoice = async (order, user) => {
     const logoS = 18;
     // White circle behind logo
     doc.setFillColor(...white);
-    doc.circle(pw / 2, 13, logoS / 2 + 1, 'F');
-    doc.addImage(logoImg, 'JPEG', (pw - logoS) / 2, 4, logoS, logoS);
+    doc.circle(pw / 2, 14, logoS / 2 + 1.5, 'F');
+    doc.addImage(logoImg, 'JPEG', (pw - logoS) / 2, 5, logoS, logoS);
   } catch {
     // skip logo on error
   }
 
-  y = 25;
+  y = 30;
 
   // Canteen name
   doc.setTextColor(...white);
@@ -74,7 +74,7 @@ const generateInvoice = async (order, user) => {
   const canteenName = 'AparnaCanteen';
   const nameW = doc.getTextWidth(canteenName);
   doc.text(canteenName, (pw - nameW) / 2, y);
-  y += 5;
+  y += 6;
 
   // Subtitle
   doc.setFontSize(7);
