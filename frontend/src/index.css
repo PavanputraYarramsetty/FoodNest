@@ -2672,6 +2672,168 @@ select.form-input {
   100% { transform: rotate(15deg); }
 }
 
+/* Top Selling Items & Dashboard Analytics Graph Styles */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.leaderboard-card {
+  background: var(--bg-card, rgba(30, 41, 59, 0.7));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg, 12px);
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+}
+
+.leaderboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+.leaderboard-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.rank-medal {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.rank-medal.rank-1 {
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.5);
+}
+
+.rank-medal.rank-2 {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.4);
+}
+
+.rank-medal.rank-3 {
+  background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
+  box-shadow: 0 0 10px rgba(180, 83, 9, 0.4);
+}
+
+.rank-medal.rank-other {
+  background: var(--bg-elevated, #334155);
+  color: var(--text-secondary);
+}
+
+.top-item-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-input, rgba(0, 0, 0, 0.2));
+  border: 1px solid transparent;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 0.65rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.top-item-row:hover {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.3);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
+}
+
+.top-item-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.top-item-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.top-item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.top-item-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.85rem;
+}
+
+.item-progress-track {
+  height: 6px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.item-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #f97316 0%, #eab308 100%);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.top-item-row:hover .item-progress-fill {
+  background: linear-gradient(90deg, #ea580c 0%, #22c55e 100%);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+/* Category Multi-Segment Progress Bar */
+.category-segmented-bar {
+  display: flex;
+  height: 14px;
+  width: 100%;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  gap: 2px;
+  margin: 1rem 0;
+}
+
+.category-segment {
+  height: 100%;
+  transition: all 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.category-segment:hover {
+  transform: scaleY(1.3);
+  filter: brightness(1.2);
+  z-index: 5;
+}
+
 .category-title {
   margin-top: 2rem;
   margin-bottom: 1rem;

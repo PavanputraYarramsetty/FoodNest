@@ -194,8 +194,8 @@ const ManageMenu = () => {
         subtitle="Add, edit, or remove menu items with images"
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <MotionButton 
-              className={`btn ${menuVisible ? 'btn-success' : 'btn-danger'}`} 
+            <MotionButton
+              className={`btn ${menuVisible ? 'btn-success' : 'btn-danger'}`}
               onClick={handleToggleMenuVisibility}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
@@ -214,30 +214,6 @@ const ManageMenu = () => {
         {message.text}
       </AlertBanner>
 
-      {/* Side-by-side Category Buttons Navigation */}
-      {menuItems.length > 0 && (
-        <div className="category-buttons-container" style={{ marginBottom: '1.25rem' }} role="tablist" aria-label="Manage menu categories">
-          {categoryNames.map(cat => {
-            const count = cat === 'All'
-              ? menuItems.length
-              : menuItems.filter(item => (item.category || 'General') === cat).length;
-            return (
-              <MotionButton
-                key={cat}
-                type="button"
-                className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
-                whileTap={{ scale: 0.95 }}
-                id={`manage-cat-btn-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
-              >
-                <span>{cat}</span>
-                <span className="category-btn-count">{count}</span>
-              </MotionButton>
-            );
-          })}
-        </div>
-      )}
-
       <div className="table-wrapper">
         <table className="table table-responsive-cards">
           <thead>
@@ -251,7 +227,7 @@ const ManageMenu = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredMenuItems.map(item => (
+            {menuItems.map(item => (
               <tr key={item.id}>
                 <td data-label="Image">
                   {item.image_url ? (
@@ -345,7 +321,7 @@ const ManageMenu = () => {
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <ImageIcon size={16} /> Item Image
               </label>
-              
+
               <div className="image-input-tabs">
                 <button
                   type="button"
