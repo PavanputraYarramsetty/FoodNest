@@ -74,7 +74,14 @@ const ManageMenu = () => {
 
   const openAddModal = () => {
     setEditItem(null);
-    setFormData({ itemName: '', price: '', category: '', isAvailable: true, isVeg: true, imageUrl: '' });
+    setFormData({
+      itemName: '',
+      price: '',
+      category: selectedCategory === 'All' ? '' : selectedCategory,
+      isAvailable: true,
+      isVeg: true,
+      imageUrl: ''
+    });
     setImageMode('url');
     setShowModal(true);
   };
@@ -214,6 +221,30 @@ const ManageMenu = () => {
         {message.text}
       </AlertBanner>
 
+      {/* Side-by-side Category Buttons Navigation */}
+      {menuItems.length > 0 && (
+        <div className="category-buttons-container" style={{ marginBottom: '1.25rem' }} role="tablist" aria-label="Manage menu categories">
+          {categoryNames.map(cat => {
+            const count = cat === 'All'
+              ? menuItems.length
+              : menuItems.filter(item => (item.category || 'General') === cat).length;
+            return (
+              <MotionButton
+                key={cat}
+                type="button"
+                className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+                whileTap={{ scale: 0.95 }}
+                id={`manage-cat-btn-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+              >
+                <span>{cat}</span>
+                <span className="category-btn-count">{count}</span>
+              </MotionButton>
+            );
+          })}
+        </div>
+      )}
+
       <div className="table-wrapper">
         <table className="table table-responsive-cards">
           <thead>
@@ -227,7 +258,7 @@ const ManageMenu = () => {
             </tr>
           </thead>
           <tbody>
-            {menuItems.map(item => (
+            {filteredMenuItems.map(item => (
               <tr key={item.id}>
                 <td data-label="Image">
                   {item.image_url ? (
