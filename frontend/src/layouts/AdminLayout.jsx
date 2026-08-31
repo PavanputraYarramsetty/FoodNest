@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Home, UtensilsCrossed, ClipboardList, DollarSign, BarChart3, Users, Menu, X, Shield, Megaphone, Store, MessageSquarePlus, BellRing, ChevronRight } from 'lucide-react';
 import AppSidebar from '../components/layout/AppSidebar';
 import PageTransition from '../components/ui/PageTransition';
+import { registerPushNotifications } from '../lib/pushNotifications';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,6 +18,11 @@ const AdminLayout = () => {
   const prevOrdersRef = useRef([]);
   const isFirstLoadRef = useRef(true);
   const audioCtxRef = useRef(null);
+
+  useEffect(() => {
+    // Register Admin Web Push Notifications
+    registerPushNotifications();
+  }, []);
 
   const getAudioContext = () => {
     try {

@@ -16,7 +16,7 @@ router.post('/subscribe', protect, (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid subscription object' });
     }
 
-    saveSubscription(req.user.id, subscription);
+    saveSubscription(req.user.id, subscription, req.user.role);
     res.json({ success: true, message: 'Push notification subscription saved' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

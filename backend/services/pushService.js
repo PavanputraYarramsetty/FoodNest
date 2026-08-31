@@ -21,9 +21,11 @@ try {
 
 // In-memory push subscriptions store keyed by userId (array of subscriptions per user)
 const userSubscriptions = new Map();
+const userRoles = new Map(); // userId -> role
 
-const saveSubscription = (userId, subscription) => {
+const saveSubscription = (userId, subscription, role = 'customer') => {
   if (!userId || !subscription || !subscription.endpoint) return;
+  if (role) userRoles.set(userId, role);
   const existing = userSubscriptions.get(userId) || [];
   // Prevent duplicates
   const filtered = existing.filter(s => s.endpoint !== subscription.endpoint);
@@ -55,8 +57,19 @@ const sendPushToUser = async (userId, payload) => {
   await Promise.all(sendPromises);
 };
 
+const sendPushToAdmins = async (payload) => {
+  const adminPromises = [];
+  for (const [userId, role] of userRoles.entries()) {
+    if (role === 'admin') {
+      adminPromises.push(sendPushToUser(userId, payload));
+    }
+  }
+  await Promise.all(adminPromises);
+};
+
 module.exports = {
   getPublicKey,
   saveSubscription,
-  sendPushToUser
+  sendPushToUser,
+  sendPushToAdmins
 };
