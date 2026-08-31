@@ -1,7 +1,6 @@
 const express = require('express');
 const supabase = require('../db');
 const { protect } = require('../middleware/auth');
-const { sendPushToAdmins } = require('../services/pushService');
 
 const router = express.Router();
 
@@ -105,15 +104,6 @@ router.post('/', protect, async (req, res) => {
       .select('*, order_items(*)')
       .eq('id', order.id)
       .single();
-
-    // Trigger Automated Web Push Notification to All Kitchen Admins
-    const displayNum = order.order_number || (order.id ? order.id.substring(0, 6).toUpperCase() : 'ORDER');
-    sendPushToAdmins({
-      title: '🔔 AparnaCanteen - New Order Received!',
-      body: `New Order #${displayNum} received! Total: ₹${totalAmount}`,
-      icon: '/favicon.jpg',
-      url: '/admin/orders'
-    });
 
     res.status(201).json({ success: true, data: fullOrder });
 

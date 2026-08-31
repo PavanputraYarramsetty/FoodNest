@@ -6,7 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { Home, UtensilsCrossed, ClipboardList, User, HelpCircle, Menu, X, Megaphone, MessageSquarePlus, Bell, ChefHat, CheckCircle2 } from 'lucide-react';
 import AppSidebar from '../components/layout/AppSidebar';
 import PageTransition from '../components/ui/PageTransition';
-import { registerPushNotifications } from '../lib/pushNotifications';
 
 const CustomerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,9 +17,6 @@ const CustomerLayout = () => {
   const audioCtxRef = useRef(null);
 
   useEffect(() => {
-    // Register Web Push Notifications
-    registerPushNotifications();
-
     // Unlock Audio Context on first click/touch
     const unlockAudio = () => {
       if (!audioCtxRef.current) {

@@ -3,7 +3,6 @@ const ExcelJS = require('exceljs');
 const bcrypt = require('bcryptjs');
 const supabase = require('../db');
 const { protect, adminOnly } = require('../middleware/auth');
-const { sendPushToUser } = require('../services/pushService');
 
 const router = express.Router();
 
@@ -248,25 +247,6 @@ router.put('/orders/:id', async (req, res) => {
     }
 
     const normalized = { ...order, customer: order.users, users: undefined };
-
-    // Trigger Automated Web Push Notification to Customer
-    const displayNum = order.id ? order.id.substring(0, 6).toUpperCase() : 'ORDER';
-    if (status === 'Preparing') {
-      sendPushToUser(order.customer_id, {
-        title: '👨‍🍳 AparnaCanteen - Order Preparing',
-        body: `Order #${displayNum} is now being PREPARING in the kitchen!`,
-        icon: '/favicon.jpg',
-        url: '/customer/orders'
-      });
-    } else if (status === 'Completed') {
-      sendPushToUser(order.customer_id, {
-        title: '✅ AparnaCanteen - Order Completed',
-        body: `Order #${displayNum} is COMPLETED! Thank you for ordering!!`,
-        icon: '/favicon.jpg',
-        url: '/customer/orders'
-      });
-    }
-
     res.json({ success: true, data: normalized });
 
   } catch (error) {
