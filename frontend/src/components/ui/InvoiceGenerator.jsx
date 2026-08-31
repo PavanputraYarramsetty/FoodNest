@@ -1,58 +1,53 @@
 import jsPDF from 'jspdf';
 
 /**
- * Generates and downloads a professional restaurant-style invoice PDF.
- * Uses jsPDF directly for precise control over the bill layout.
+ * Generates and downloads a professional, colorful half-A4 restaurant invoice PDF.
+ * Half A4 = A5 portrait (148mm × 210mm)
  */
+
+const QUOTES = [
+  '"People who love to eat are always the best people." — Julia Child',
+  '"One cannot think well, love well, sleep well, if one has not dined well." — Virginia Woolf',
+  '"Good food is the foundation of genuine happiness." — Auguste Escoffier',
+  '"There is no sincere love than the love of food." — George Bernard Shaw',
+  '"Cooking is love made visible." — Unknown',
+  '"Food is symbolic of love when words are inadequate." — Alan D. Wolfelt',
+];
+
 const generateInvoice = async (order, user) => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: [80, 200] // Thermal receipt width (80mm), will auto-extend height
-  });
+  const pw = 148; // page width in mm (A5)
+  const ph = 210; // page height in mm (A5)
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pw, ph] });
 
-  const pageWidth = 80;
-  const margin = 5;
-  const contentWidth = pageWidth - margin * 2;
-  let y = 8;
+  const margin = 8;
+  const cw = pw - margin * 2; // content width
+  let y = 0;
 
-  // Helper functions
-  const centerText = (text, yPos, fontSize = 8, style = 'normal') => {
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', style);
-    const textWidth = doc.getTextWidth(text);
-    doc.text(text, (pageWidth - textWidth) / 2, yPos);
-  };
+  // ── Brand colors ──
+  const orange = [249, 115, 22];
+  const orangeLight = [255, 237, 220];
+  const dark = [30, 30, 30];
+  const mid = [80, 80, 80];
+  const muted = [130, 130, 130];
+  const white = [255, 255, 255];
+  const green = [22, 163, 74];
 
-  const leftText = (text, yPos, fontSize = 7, style = 'normal') => {
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', style);
-    doc.text(text, margin, yPos);
-  };
+  // ══════════════════════════════════════════════
+  // HEADER — Gradient banner with logo + name
+  // ══════════════════════════════════════════════
+  const headerH = 38;
 
-  const rightText = (text, yPos, fontSize = 7, style = 'normal') => {
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', style);
-    const textWidth = doc.getTextWidth(text);
-    doc.text(text, pageWidth - margin - textWidth, yPos);
-  };
+  // Draw gradient header background (simulate with multiple rects)
+  for (let i = 0; i < headerH; i++) {
+    const ratio = i / headerH;
+    const r = Math.round(249 - ratio * 40);
+    const g = Math.round(115 - ratio * 30);
+    const b = Math.round(22 + ratio * 10);
+    doc.setFillColor(r, g, b);
+    doc.rect(0, i, pw, 1, 'F');
+  }
 
-  const drawDashedLine = (yPos) => {
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineDashPattern([1, 1], 0);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    doc.setLineDashPattern([], 0);
-  };
-
-  const drawSolidLine = (yPos) => {
-    doc.setDrawColor(40, 40, 40);
-    doc.setLineWidth(0.3);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-  };
-
-  // =============================================
-  // HEADER: Logo + Canteen Name
-  // =============================================
+  // Load and draw logo
   try {
     const logoImg = new Image();
     logoImg.crossOrigin = 'anonymous';
@@ -61,228 +56,310 @@ const generateInvoice = async (order, user) => {
       logoImg.onerror = reject;
       logoImg.src = '/favicon.jpg';
     });
-    const logoSize = 14;
-    doc.addImage(logoImg, 'JPEG', (pageWidth - logoSize) / 2, y, logoSize, logoSize);
-    y += logoSize + 2;
+    const logoS = 18;
+    // White circle behind logo
+    doc.setFillColor(...white);
+    doc.circle(pw / 2, 13, logoS / 2 + 1, 'F');
+    doc.addImage(logoImg, 'JPEG', (pw - logoS) / 2, 4, logoS, logoS);
   } catch {
-    // If logo fails to load, just skip it
-    y += 2;
+    // skip logo on error
   }
 
+  y = 25;
+
   // Canteen name
-  doc.setTextColor(30, 30, 30);
-  centerText('AparnaCanteen', y, 14, 'bold');
+  doc.setTextColor(...white);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  const canteenName = 'AparnaCanteen';
+  const nameW = doc.getTextWidth(canteenName);
+  doc.text(canteenName, (pw - nameW) / 2, y);
   y += 5;
 
-  // Tagline
-  doc.setTextColor(100, 100, 100);
-  centerText('Campus Dining Made Delicious', y, 6, 'italic');
-  y += 4;
-
-  drawSolidLine(y);
+  // Subtitle
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'italic');
+  const sub = 'Delicious Campus Dining';
+  doc.text(sub, (pw - doc.getTextWidth(sub)) / 2, y);
   y += 3;
 
-  // =============================================
-  // INVOICE TITLE
-  // =============================================
-  doc.setTextColor(30, 30, 30);
-  centerText('TAX INVOICE', y, 10, 'bold');
-  y += 5;
+  // Thin decorative line under header
+  doc.setDrawColor(...orangeLight);
+  doc.setLineWidth(0.5);
+  doc.line(margin, headerH + 1, pw - margin, headerH + 1);
 
-  drawDashedLine(y);
-  y += 4;
+  y = headerH + 5;
 
-  // =============================================
-  // PAYMENT METHOD
-  // =============================================
-  const paymentMethod = order.payment_method || 'COD';
-  const paymentLabel = paymentMethod === 'COD' ? 'Cash On Delivery' : paymentMethod;
-  
-  doc.setFillColor(240, 240, 240);
-  doc.roundedRect(margin, y - 2.5, contentWidth, 7, 1, 1, 'F');
-  doc.setTextColor(30, 30, 30);
-  centerText(`Payment: ${paymentLabel}`, y + 1.5, 7, 'bold');
+  // ══════════════════════════════════════════════
+  // ORDER NUMBER BADGE — colorful accent
+  // ══════════════════════════════════════════════
+  const orderNumStr = `#${order.order_number}`;
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  const badgeTextW = doc.getTextWidth(orderNumStr);
+  const badgeW = badgeTextW + 10;
+  const badgeX = (pw - badgeW) / 2;
+
+  // Badge background
+  doc.setFillColor(...orange);
+  doc.roundedRect(badgeX, y - 4, badgeW, 8, 2, 2, 'F');
+  doc.setTextColor(...white);
+  doc.text(orderNumStr, (pw - badgeTextW) / 2, y + 1.5);
   y += 8;
 
-  // =============================================
-  // ORDER INFO
-  // =============================================
+  // Order ID (UUID short) + Date
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...muted);
   const orderDate = new Date(order.created_at);
-  const formattedDate = orderDate.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-  const formattedTime = orderDate.toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
-
-  // Generate invoice number from order data
-  const invoiceNum = `INV-${order.order_number || '0'}-${orderDate.getFullYear()}${String(orderDate.getMonth() + 1).padStart(2, '0')}${String(orderDate.getDate()).padStart(2, '0')}`;
-
-  doc.setTextColor(60, 60, 60);
-  
-  leftText(`Order #${order.order_number}`, y, 7, 'bold');
-  rightText(formattedDate, y, 6);
-  y += 4;
-
-  leftText(`Invoice: ${invoiceNum}`, y, 6);
-  rightText(formattedTime, y, 6);
-  y += 4;
-
-  leftText(`Order ID: ${order.id.substring(0, 8).toUpperCase()}`, y, 6);
-  y += 4;
-
-  drawDashedLine(y);
-  y += 4;
-
-  // =============================================
-  // CUSTOMER DETAILS
-  // =============================================
-  doc.setTextColor(30, 30, 30);
-  leftText('CUSTOMER DETAILS', y, 7, 'bold');
-  y += 4;
-
-  doc.setTextColor(60, 60, 60);
-  leftText(`Name: ${user?.name || 'Customer'}`, y, 7);
-  y += 4;
-  leftText(`Phone: ${user?.phone || 'N/A'}`, y, 7);
-  y += 4;
-
-  drawDashedLine(y);
-  y += 4;
-
-  // =============================================
-  // ITEMS TABLE HEADER
-  // =============================================
-  doc.setTextColor(30, 30, 30);
-  doc.setFontSize(6);
-  doc.setFont('helvetica', 'bold');
-
-  // Column positions
-  const col = {
-    sno: margin,
-    item: margin + 6,
-    qty: margin + 43,
-    price: margin + 52,
-    amount: margin + 62
-  };
-
-  doc.text('S#', col.sno, y);
-  doc.text('Item', col.item, y);
-  doc.text('Qty', col.qty, y);
-  doc.text('Price', col.price, y);
-  doc.text('Amt', col.amount, y);
-  y += 2;
-
-  drawSolidLine(y);
+  const dateStr = orderDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = orderDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const orderIdShort = `Order ID: ${order.id.substring(0, 8).toUpperCase()}`;
+  doc.text(orderIdShort, margin, y);
+  const dtStr = `${dateStr}  •  ${timeStr}`;
+  doc.text(dtStr, pw - margin - doc.getTextWidth(dtStr), y);
   y += 3;
 
-  // =============================================
-  // ITEMS LIST
-  // =============================================
+  // Payment method
+  if (order.payment_method) {
+    const pmLabel = order.payment_method === 'COD' ? 'Cash On Delivery (COD)' : order.payment_method;
+    const pmStr = `Payment: ${pmLabel}`;
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...green);
+    doc.text(pmStr, margin, y);
+  }
+  y += 5;
+
+  // ══════════════════════════════════════════════
+  // CUSTOMER DETAILS SECTION
+  // ══════════════════════════════════════════════
+  // Section divider
+  doc.setDrawColor(...orange);
+  doc.setLineWidth(0.4);
+  doc.line(margin, y, pw - margin, y);
+  y += 4;
+
+  // Section label
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...orange);
+  doc.text('CUSTOMER DETAILS', margin, y);
+  y += 5;
+
+  // Customer info
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...dark);
+
+  const customerName = user?.name || 'Customer';
+  const customerPhone = user?.phone || 'N/A';
+  const customerBlock = user?.hostelBlock || 'N/A';
+
+  // Row 1: Name
+  doc.setFont('helvetica', 'bold');
+  doc.text('Name:', margin, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(customerName, margin + 18, y);
+
+  // Phone on the right
+  doc.setFont('helvetica', 'bold');
+  const phoneLabel = 'Phone:';
+  const phoneLabelX = pw / 2 + 5;
+  doc.text(phoneLabel, phoneLabelX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(customerPhone, phoneLabelX + 16, y);
+  y += 5;
+
+  // Row 2: Block
+  doc.setFont('helvetica', 'bold');
+  doc.text('Block:', margin, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(customerBlock, margin + 18, y);
+  y += 5;
+
+  // ══════════════════════════════════════════════
+  // ITEMS TABLE
+  // ══════════════════════════════════════════════
+  // Section divider
+  doc.setDrawColor(...orange);
+  doc.setLineWidth(0.4);
+  doc.line(margin, y, pw - margin, y);
+  y += 4;
+
+  // Section label
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...orange);
+  doc.text('ORDER ITEMS', margin, y);
+  y += 5;
+
+  // Table header background
+  doc.setFillColor(...orangeLight);
+  doc.roundedRect(margin, y - 3, cw, 7, 1, 1, 'F');
+
+  // Column positions
+  const cols = {
+    sno: margin + 2,
+    item: margin + 10,
+    qty: margin + 75,
+    rate: margin + 90,
+    amount: margin + 108
+  };
+
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...dark);
+  doc.text('S.No', cols.sno, y + 1);
+  doc.text('Item', cols.item, y + 1);
+  doc.text('Qty', cols.qty, y + 1);
+  doc.text('Rate', cols.rate, y + 1);
+  doc.text('Amount', cols.amount, y + 1);
+  y += 7;
+
+  // Items rows
   const items = order.order_items || [];
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(...dark);
 
   items.forEach((item, idx) => {
-    const itemTotal = (item.price * item.quantity).toFixed(2);
-    
-    doc.setFontSize(6);
-    doc.text(`${idx + 1}`, col.sno, y);
-    
-    // Truncate long item names
+    const itemTotal = (Number(item.price) * Number(item.quantity)).toFixed(2);
+
+    // Alternate row background
+    if (idx % 2 === 0) {
+      doc.setFillColor(252, 252, 252);
+      doc.rect(margin, y - 3, cw, 6, 'F');
+    }
+
+    doc.setFontSize(7);
+    doc.setTextColor(...dark);
+    doc.text(`${idx + 1}`, cols.sno + 2, y);
+
+    // Truncate long names
     let itemName = item.item_name || 'Item';
-    const maxNameWidth = 35;
-    while (doc.getTextWidth(itemName) > maxNameWidth && itemName.length > 3) {
+    doc.setFontSize(7);
+    const maxNameW = 60;
+    while (doc.getTextWidth(itemName) > maxNameW && itemName.length > 3) {
       itemName = itemName.slice(0, -1);
     }
     if (itemName !== item.item_name) itemName += '..';
-    
-    doc.text(itemName, col.item, y);
-    doc.text(`${item.quantity}`, col.qty, y);
-    doc.text(`${Number(item.price).toFixed(0)}`, col.price, y);
-    doc.text(`${itemTotal}`, col.amount, y);
-    y += 4;
+    doc.text(itemName, cols.item, y);
+
+    doc.text(`${item.quantity}`, cols.qty + 3, y);
+    doc.text(`${Number(item.price).toFixed(2)}`, cols.rate, y);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${itemTotal}`, cols.amount, y);
+    doc.setFont('helvetica', 'normal');
+    y += 6;
   });
 
-  y += 1;
-  drawSolidLine(y);
-  y += 4;
+  // Bottom line of table
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y - 2, pw - margin, y - 2);
+  y += 2;
 
-  // =============================================
-  // TOTALS
-  // =============================================
-  doc.setTextColor(30, 30, 30);
-  doc.setFontSize(7);
+  // ══════════════════════════════════════════════
+  // TOTAL SECTION
+  // ══════════════════════════════════════════════
+  // Total row background
+  doc.setFillColor(...orange);
+  doc.roundedRect(margin, y - 1, cw, 10, 1.5, 1.5, 'F');
 
-  // Subtotal
-  doc.setFont('helvetica', 'normal');
-  leftText('Subtotal:', y, 7);
-  rightText(`₹${Number(order.total_amount).toFixed(2)}`, y, 7);
-  y += 4;
-
-  drawDashedLine(y);
-  y += 4;
-
-  // Grand Total
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('TOTAL:', margin, y);
-  const totalText = `₹${Number(order.total_amount).toFixed(2)}`;
-  const totalTextWidth = doc.getTextWidth(totalText);
-  doc.text(totalText, pageWidth - margin - totalTextWidth, y);
-  y += 3;
+  doc.setTextColor(...white);
+  doc.text('TOTAL', margin + 4, y + 5.5);
 
-  drawSolidLine(y);
+  const totalStr = `Rs. ${Number(order.total_amount).toFixed(2)}`;
+  const totalW = doc.getTextWidth(totalStr);
+  doc.text(totalStr, pw - margin - 4 - totalW, y + 5.5);
+  y += 14;
+
+  // Item count
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...muted);
+  const itemCountStr = `Total Items: ${items.length}  |  Total Qty: ${items.reduce((s, i) => s + Number(i.quantity), 0)}`;
+  doc.text(itemCountStr, (pw - doc.getTextWidth(itemCountStr)) / 2, y);
   y += 6;
 
-  // =============================================
+  // ══════════════════════════════════════════════
   // STATUS
-  // =============================================
+  // ══════════════════════════════════════════════
   const statusColors = {
-    'Pending': [230, 160, 30],
+    'Pending': [234, 160, 28],
     'Preparing': [50, 130, 220],
-    'Completed': [40, 167, 69],
+    'Completed': [22, 163, 74],
     'Cancelled': [220, 53, 69]
   };
-  const statusColor = statusColors[order.status] || [100, 100, 100];
-  doc.setTextColor(...statusColor);
-  centerText(`Status: ${order.status}`, y, 8, 'bold');
-  y += 6;
+  const sc = statusColors[order.status] || muted;
 
-  // =============================================
-  // FOOTER
-  // =============================================
-  drawDashedLine(y);
-  y += 4;
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...sc);
+  const statusStr = `Status: ${order.status}`;
+  doc.text(statusStr, (pw - doc.getTextWidth(statusStr)) / 2, y);
+  y += 7;
 
-  doc.setTextColor(80, 80, 80);
-  centerText('Thank You for ordering!', y, 8, 'bold');
-  y += 4;
-  doc.setTextColor(120, 120, 120);
-  centerText('We hope you enjoyed your meal.', y, 6, 'italic');
-  y += 3.5;
-  centerText('Visit again soon!', y, 6, 'italic');
+  // ══════════════════════════════════════════════
+  // DECORATIVE DIVIDER
+  // ══════════════════════════════════════════════
+  doc.setDrawColor(...orange);
+  doc.setLineWidth(0.3);
+  // Draw a dotted decorative line
+  for (let dx = margin; dx < pw - margin; dx += 3) {
+    doc.line(dx, y, dx + 1.5, y);
+  }
   y += 5;
 
-  drawDashedLine(y);
+  // ══════════════════════════════════════════════
+  // THANK YOU + QUOTATION
+  // ══════════════════════════════════════════════
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...orange);
+  const ty = 'Thank You for Your Order!';
+  doc.text(ty, (pw - doc.getTextWidth(ty)) / 2, y);
+  y += 5;
+
+  // Random quotation
+  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(...mid);
+
+  // Word-wrap the quote
+  const quoteLines = doc.splitTextToSize(quote, cw - 10);
+  quoteLines.forEach((line) => {
+    const lw = doc.getTextWidth(line);
+    doc.text(line, (pw - lw) / 2, y);
+    y += 3.5;
+  });
   y += 3;
 
-  doc.setTextColor(150, 150, 150);
-  centerText('Powered by FoodNest', y, 5);
-  y += 3;
-  centerText(`Generated: ${new Date().toLocaleString('en-IN')}`, y, 4);
+  // ══════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════
+  // Decorative bottom bar
+  const footerY = Math.max(y, ph - 12);
+  doc.setFillColor(...orange);
+  doc.rect(0, footerY, pw, 12, 'F');
 
-  // =============================================
-  // Resize page to fit content
-  // =============================================
-  const finalHeight = y + 5;
-  doc.internal.pageSize.height = finalHeight;
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...white);
+  const footerText = 'Powered by FoodNest  •  AparnaCanteen';
+  doc.text(footerText, (pw - doc.getTextWidth(footerText)) / 2, footerY + 5);
 
-  // Download
+  const genText = `Generated: ${new Date().toLocaleString('en-IN')}`;
+  doc.setFontSize(5);
+  doc.text(genText, (pw - doc.getTextWidth(genText)) / 2, footerY + 9);
+
+  // ══════════════════════════════════════════════
+  // DOWNLOAD
+  // ══════════════════════════════════════════════
   const fileName = `AparnaCanteen_Invoice_${order.order_number || 'order'}.pdf`;
   doc.save(fileName);
 };
