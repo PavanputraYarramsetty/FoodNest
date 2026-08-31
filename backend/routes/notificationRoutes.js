@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 const { getPublicKey, saveSubscription } = require('../services/pushService');
 
 // GET /api/notifications/vapid-public-key — Get VAPID public key for frontend subscription
@@ -9,7 +9,7 @@ router.get('/vapid-public-key', (req, res) => {
 });
 
 // POST /api/notifications/subscribe — Save customer push subscription
-router.post('/subscribe', authenticate, (req, res) => {
+router.post('/subscribe', protect, (req, res) => {
   try {
     const subscription = req.body;
     if (!subscription || !subscription.endpoint) {
