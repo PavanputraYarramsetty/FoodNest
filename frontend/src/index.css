@@ -1874,6 +1874,14 @@ select.form-input {
   }
 }
 
+/* Widescreen Desktop Proportional Scaling (>1400px) */
+@media (min-width: 1400px) {
+  .page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+}
+
 @media (max-width: 480px) {
   .stats-grid {
     grid-template-columns: 1fr;
@@ -1881,6 +1889,23 @@ select.form-input {
 
   .modal {
     max-height: 95vh;
+  }
+
+  .modal-container {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    padding: 1.25rem !important;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .new-order-toast-banner {
+    margin: 0.75rem 0.5rem 0 0.5rem !important;
+    padding: 0.75rem 1rem;
   }
 }
 
