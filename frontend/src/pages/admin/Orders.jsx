@@ -20,37 +20,82 @@ const AdminOrders = () => {
 
   const prevOrdersRef = useRef([]);
   const isFirstLoadRef = useRef(true);
+  const audioCtxRef = useRef(null);
+
+  // Initialize and unlock audio context on any user interaction
+  const getAudioContext = () => {
+    try {
+      if (!audioCtxRef.current) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          audioCtxRef.current = new AudioCtx();
+        }
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+      return audioCtxRef.current;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Pre-unlock audio on user click/touch anywhere on page (resolves browser autoplay policies)
+  useEffect(() => {
+    const unlock = () => {
+      getAudioContext();
+    };
+    window.addEventListener('click', unlock);
+    window.addEventListener('touchstart', unlock);
+    window.addEventListener('keydown', unlock);
+    return () => {
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  const playTones = (ctx) => {
+    try {
+      const now = ctx.currentTime;
+      // Tone 1 (587.33 Hz - D5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0.35, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.4);
+
+      // Tone 2 (880 Hz - A5)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, now + 0.18);
+      gain2.gain.setValueAtTime(0.45, now + 0.18);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.18);
+      osc2.stop(now + 0.85);
+    } catch (e) {
+      console.warn('Tone play error:', e);
+    }
+  };
 
   // Web Audio API Synthesizer - Generates a pleasant two-tone chime sound
   const playOrderChime = () => {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-
-      // First Tone (587.33 Hz - D5)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
-      gain1.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(ctx.currentTime);
-      osc1.stop(ctx.currentTime + 0.3);
-
-      // Second Tone (880 Hz - A5)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-      gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.15);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(ctx.currentTime + 0.15);
-      osc2.stop(ctx.currentTime + 0.6);
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(() => playTones(ctx)).catch(() => playTones(ctx));
+      } else {
+        playTones(ctx);
+      }
     } catch (e) {
       console.warn('Audio chime playback warning:', e);
     }
@@ -79,7 +124,7 @@ const AdminOrders = () => {
       const fetchedOrders = res.data.data || [];
 
       // Check if new orders arrived since last poll
-      if (!isFirstLoadRef.current && prevOrdersRef.current.length > 0) {
+      if (!isFirstLoadRef.current) {
         const newIncoming = fetchedOrders.filter(
           order => !prevOrdersRef.current.some(prev => prev.id === order.id)
         );

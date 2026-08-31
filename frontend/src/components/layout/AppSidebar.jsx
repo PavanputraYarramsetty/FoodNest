@@ -59,6 +59,22 @@ const AppSidebar = ({
                   )}
                   <link.icon size={20} />
                   <span>{link.label}</span>
+                  {link.badge != null && link.badge > 0 && (
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '0.1rem 0.45rem',
+                        borderRadius: '9999px',
+                        lineHeight: 1
+                      }}
+                    >
+                      {link.badge}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>
