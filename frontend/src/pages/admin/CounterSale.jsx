@@ -8,6 +8,7 @@ import MotionButton from '../../components/ui/MotionButton';
 
 const CounterSale = () => {
   const [menu, setMenu] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [quantities, setQuantities] = useState({});
   const [stats, setStats] = useState({ items: [], grandTotalRevenue: 0 });
   const [loading, setLoading] = useState(true);
@@ -40,6 +41,21 @@ const CounterSale = () => {
       setLoading(false);
     }
   };
+
+  const categories = Array.from(new Set(menu.map(item => item.category || 'General')))
+    .sort((a, b) => {
+      const isStarterA = a.toLowerCase().includes('starter') || a.toLowerCase().includes('starer');
+      const isStarterB = b.toLowerCase().includes('starter') || b.toLowerCase().includes('starer');
+      if (isStarterA && !isStarterB) return -1;
+      if (!isStarterA && isStarterB) return 1;
+      return a.localeCompare(b);
+    });
+
+  const categoryNames = ['All', ...categories];
+
+  const filteredMenu = selectedCategory === 'All'
+    ? menu
+    : menu.filter(item => (item.category || 'General') === selectedCategory);
 
   const fetchStats = async () => {
     try {
@@ -159,11 +175,36 @@ const CounterSale = () => {
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-400)' }}>
             Select Canteen Items
           </h2>
-          {menu.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No items available on the menu.</p>
+
+          {/* Side-by-side Category Buttons Navigation */}
+          {menu.length > 0 && (
+            <div className="category-buttons-container" style={{ marginBottom: '1.25rem' }} role="tablist" aria-label="Counter sale categories">
+              {categoryNames.map(cat => {
+                const count = cat === 'All'
+                  ? menu.length
+                  : menu.filter(item => (item.category || 'General') === cat).length;
+                return (
+                  <MotionButton
+                    key={cat}
+                    type="button"
+                    className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(cat)}
+                    whileTap={{ scale: 0.95 }}
+                    id={`counter-cat-btn-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                  >
+                    <span>{cat}</span>
+                    <span className="category-btn-count">{count}</span>
+                  </MotionButton>
+                );
+              })}
+            </div>
+          )}
+
+          {filteredMenu.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>No items available in this category.</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-              {menu.map(item => (
+              {filteredMenu.map(item => (
                 <div 
                   key={item.id} 
                   className="detail-row" 

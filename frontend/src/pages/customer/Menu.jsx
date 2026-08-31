@@ -22,6 +22,7 @@ const MenuPage = () => {
       return {};
     }
   });
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [showCart, setShowCart] = useState(false);
   const [cartStep, setCartStep] = useState('cart'); // 'cart' or 'payment'
   const [paymentMethod, setPaymentMethod] = useState('COD');
@@ -131,6 +132,11 @@ const MenuPage = () => {
     return catA.localeCompare(catB);
   });
 
+  const categoryNames = ['All', ...categories.map(([cat]) => cat)];
+  const displayedCategories = selectedCategory === 'All'
+    ? categories
+    : categories.filter(([cat]) => cat === selectedCategory);
+
   return (
     <div>
       <PageHeader title="Menu" subtitle="Browse items and add to your cart" />
@@ -155,8 +161,31 @@ const MenuPage = () => {
               fallback={<SceneFallback />}
             />
           </div>
+
+          {/* Side-by-side Category Buttons Navigation */}
+          <div className="category-buttons-container" role="tablist" aria-label="Menu categories">
+            {categoryNames.map(cat => {
+              const count = cat === 'All'
+                ? menuItems.length
+                : (categories.find(([c]) => c === cat)?.[1].length || 0);
+              return (
+                <MotionButton
+                  key={cat}
+                  type="button"
+                  className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                  whileTap={{ scale: 0.95 }}
+                  id={`cat-btn-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                >
+                  <span>{cat}</span>
+                  <span className="category-btn-count">{count}</span>
+                </MotionButton>
+              );
+            })}
+          </div>
+
           <div className="menu-categories">
-            {categories.map(([category, items]) => (
+            {displayedCategories.map(([category, items]) => (
               <div key={category} className="menu-category-section">
                 <h2 className="category-title">{category}</h2>
                 <motion.div
