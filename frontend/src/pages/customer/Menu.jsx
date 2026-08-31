@@ -50,6 +50,7 @@ const MenuPage = () => {
   };
 
   const addToCart = (item) => {
+    if (item.is_available === false) return;
     setCart(prev => ({
       ...prev,
       [item.id]: {
@@ -164,71 +165,87 @@ const MenuPage = () => {
                   initial="initial"
                   animate="animate"
                 >
-                  {items.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      className="menu-card"
-                      variants={fadeUp}
-                      transition={{ delay: index * 0.04 }}
-                      whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                    >
-                      <div className="menu-card-img-wrap">
-                        <div className="menu-card-img-badge">
-                          <span
-                            className={`veg-indicator ${item.is_veg !== false ? 'veg' : 'non-veg'}`}
-                            title={item.is_veg !== false ? 'Veg' : 'Non-Veg'}
-                          />
-                          <span>{item.is_veg !== false ? 'Veg' : 'Non-Veg'}</span>
-                        </div>
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.item_name}
-                            className="menu-card-img"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div
-                          className="menu-card-img-placeholder"
-                          style={{ display: item.image_url ? 'none' : 'flex' }}
-                        >
-                          <UtensilsCrossed size={36} />
-                        </div>
-                      </div>
-
-                      <div className="menu-card-body">
-                        <div className="menu-card-header">
-                          <div>
-                            <div className="menu-item-name">{item.item_name}</div>
-                            <div className="menu-item-category">{item.category || 'General'}</div>
+                  {items.map((item, index) => {
+                    const isOutOfStock = !item.is_available;
+                    return (
+                      <motion.div
+                        key={item.id}
+                        className={`menu-card ${isOutOfStock ? 'out-of-stock' : ''}`}
+                        variants={fadeUp}
+                        transition={{ delay: index * 0.04 }}
+                        whileHover={isOutOfStock ? {} : { y: -3, transition: { duration: 0.2 } }}
+                      >
+                        <div className="menu-card-img-wrap">
+                          <div className="menu-card-img-badge">
+                            <span
+                              className={`veg-indicator ${item.is_veg !== false ? 'veg' : 'non-veg'}`}
+                              title={item.is_veg !== false ? 'Veg' : 'Non-Veg'}
+                            />
+                            <span>{item.is_veg !== false ? 'Veg' : 'Non-Veg'}</span>
                           </div>
-                          <div className="menu-item-price">₹{item.price}</div>
+                          {isOutOfStock && (
+                            <div className="out-of-stock-overlay">
+                              Out of Stock
+                            </div>
+                          )}
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.item_name}
+                              className="menu-card-img"
+                              style={isOutOfStock ? { filter: 'grayscale(100%) brightness(0.6)' } : {}}
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className="menu-card-img-placeholder"
+                            style={{
+                              display: item.image_url ? 'none' : 'flex',
+                              ...(isOutOfStock ? { filter: 'grayscale(100%) brightness(0.6)' } : {})
+                            }}
+                          >
+                            <UtensilsCrossed size={36} />
+                          </div>
                         </div>
 
-                        <div className="menu-card-actions">
-                          {cart[item.id] ? (
-                            <div className="quantity-control" style={{ width: '100%', justifyContent: 'space-between' }}>
-                              <MotionButton className="quantity-btn" onClick={() => removeFromCart(item.id)} id={`decrease-${item.id}`} aria-label={`Remove one ${item.item_name}`}>
-                                <Minus size={16} />
-                              </MotionButton>
-                              <span className="quantity-value">{cart[item.id].quantity}</span>
-                              <MotionButton className="quantity-btn" onClick={() => addToCart(item)} id={`increase-${item.id}`} aria-label={`Add one more ${item.item_name}`}>
-                                <Plus size={16} />
-                              </MotionButton>
+                        <div className="menu-card-body">
+                          <div className="menu-card-header">
+                            <div>
+                              <div className="menu-item-name" style={isOutOfStock ? { color: 'var(--text-muted)' } : {}}>{item.item_name}</div>
+                              <div className="menu-item-category">{item.category || 'General'}</div>
                             </div>
-                          ) : (
-                            <MotionButton className="btn btn-primary btn-sm" onClick={() => addToCart(item)} id={`add-${item.id}`} style={{ width: '100%', justifyContent: 'center' }}>
-                              <Plus size={16} /> Add to Cart
-                            </MotionButton>
-                          )}
+                            <div className="menu-item-price" style={isOutOfStock ? { opacity: 0.5, color: 'var(--text-muted)' } : {}}>₹{item.price}</div>
+                          </div>
+
+                          <div className="menu-card-actions">
+                            {isOutOfStock ? (
+                              <button className="btn btn-sm btn-out-of-stock" disabled>
+                                Out of Stock
+                              </button>
+                            ) : cart[item.id] ? (
+                              <div className="quantity-control" style={{ width: '100%', justifyContent: 'space-between' }}>
+                                <MotionButton className="quantity-btn" onClick={() => removeFromCart(item.id)} id={`decrease-${item.id}`} aria-label={`Remove one ${item.item_name}`}>
+                                  <Minus size={16} />
+                                </MotionButton>
+                                <span className="quantity-value">{cart[item.id].quantity}</span>
+                                <MotionButton className="quantity-btn" onClick={() => addToCart(item)} id={`increase-${item.id}`} aria-label={`Add one more ${item.item_name}`}>
+                                  <Plus size={16} />
+                                </MotionButton>
+                              </div>
+                            ) : (
+                              <MotionButton className="btn btn-primary btn-sm" onClick={() => addToCart(item)} id={`add-${item.id}`} style={{ width: '100%', justifyContent: 'center' }}>
+                                <Plus size={16} /> Add to Cart
+                              </MotionButton>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               </div>
             ))}

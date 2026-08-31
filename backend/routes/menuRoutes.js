@@ -16,7 +16,6 @@ router.get('/', protect, async (req, res) => {
     const { data: menuItems, error } = await supabase
       .from('menu_items')
       .select('*')
-      .eq('is_available', true)
       .order('category', { ascending: true })
       .order('item_name', { ascending: true });
 

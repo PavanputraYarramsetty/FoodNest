@@ -1044,6 +1044,45 @@ select.form-input {
   box-shadow: var(--shadow-glow);
 }
 
+.menu-card.out-of-stock {
+  opacity: 0.8;
+}
+
+.menu-card.out-of-stock:hover {
+  transform: none;
+  border-color: var(--glass-border);
+  box-shadow: none;
+}
+
+.out-of-stock-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  z-index: 3;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  white-space: nowrap;
+}
+
+.btn-out-of-stock {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  cursor: not-allowed !important;
+  width: 100%;
+  justify-content: center;
+  font-weight: 600;
+}
+
 .menu-card-img-wrap {
   width: 100%;
   height: 175px;
