@@ -58,10 +58,36 @@ const generateInvoice = async (order, user) => {
     });
     const logoS = 16;
     const logoY = 3;
+    const circleR = logoS / 2 + 1;
+
     // White circle behind logo
     doc.setFillColor(...white);
-    doc.circle(pw / 2, logoY + logoS / 2, logoS / 2 + 1, 'F');
-    doc.addImage(logoImg, 'JPEG', (pw - logoS) / 2, logoY, logoS, logoS);
+    doc.circle(pw / 2, logoY + logoS / 2, circleR, 'F');
+
+    // Clip the logo into a circle using an offscreen canvas
+    const canvasSize = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext('2d');
+
+    // Draw circular clipping path
+    ctx.beginPath();
+    ctx.arc(canvasSize / 2, canvasSize / 2, canvasSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    // Draw the logo image filling the canvas
+    ctx.drawImage(logoImg, 0, 0, canvasSize, canvasSize);
+
+    // Use the clipped circular image in the PDF
+    const circularLogoData = canvas.toDataURL('image/png');
+    const circleDiameter = circleR * 2;
+    doc.addImage(
+      circularLogoData, 'PNG',
+      pw / 2 - circleR, logoY + logoS / 2 - circleR,
+      circleDiameter, circleDiameter
+    );
     y = logoY + logoS + 4; // position text below logo with 4mm gap
   } catch {
     y = 14; // fallback if logo fails to load
