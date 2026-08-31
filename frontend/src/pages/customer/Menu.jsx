@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'motion/react';
-import { ShoppingCart, Plus, Minus, X, CheckCircle, AlertCircle, Package, UtensilsCrossed, ArrowLeft, Banknote } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, X, CheckCircle, AlertCircle, Package, UtensilsCrossed, ArrowLeft, Banknote, Search } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AnimatedModal from '../../components/ui/AnimatedModal';
 import AlertBanner from '../../components/ui/AlertBanner';
@@ -23,6 +23,8 @@ const MenuPage = () => {
     }
   });
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [vegOnly, setVegOnly] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [cartStep, setCartStep] = useState('cart'); // 'cart' or 'payment'
   const [paymentMethod, setPaymentMethod] = useState('COD');
@@ -117,8 +119,18 @@ const MenuPage = () => {
     return <LoadingState />;
   }
 
+  // Filter items by Search text and Veg Only preference
+  const filteredMenuItems = menuItems.filter(item => {
+    const matchesVeg = !vegOnly || item.is_veg !== false;
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q ||
+      item.item_name.toLowerCase().includes(q) ||
+      (item.category || '').toLowerCase().includes(q);
+    return matchesVeg && matchesSearch;
+  });
+
   const categories = Object.entries(
-    menuItems.reduce((acc, item) => {
+    filteredMenuItems.reduce((acc, item) => {
       const cat = item.category || 'General';
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(item);
@@ -132,7 +144,15 @@ const MenuPage = () => {
     return catA.localeCompare(catB);
   });
 
-  const categoryNames = ['All', ...categories.map(([cat]) => cat)];
+  const allCategories = Array.from(new Set(menuItems.map(item => item.category || 'General'))).sort((a, b) => {
+    const isStarterA = a.toLowerCase().includes('starter') || a.toLowerCase().includes('starer');
+    const isStarterB = b.toLowerCase().includes('starter') || b.toLowerCase().includes('starer');
+    if (isStarterA && !isStarterB) return -1;
+    if (!isStarterA && isStarterB) return 1;
+    return a.localeCompare(b);
+  });
+
+  const categoryNames = ['All', ...allCategories];
   const displayedCategories = selectedCategory === 'All'
     ? categories
     : categories.filter(([cat]) => cat === selectedCategory);
@@ -162,12 +182,44 @@ const MenuPage = () => {
             />
           </div>
 
+          {/* Search bar & Veg Only Quick Filter */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="search-bar" style={{ flex: 1, minWidth: '220px', margin: 0 }}>
+              <Search size={16} className="search-bar-icon" />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Search menu (e.g. Biryani, Paneer, Starters...)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                id="menu-search-input"
+                style={{ paddingRight: searchQuery ? '2.5rem' : '1rem' }}
+              />
+              {searchQuery && (
+                <button type="button" className="search-bar-clear" onClick={() => setSearchQuery('')} aria-label="Clear search">
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            <MotionButton
+              type="button"
+              className={`veg-toggle-btn ${vegOnly ? 'active' : ''}`}
+              onClick={() => setVegOnly(!vegOnly)}
+              whileTap={{ scale: 0.95 }}
+              id="veg-only-toggle"
+            >
+              <span className="veg-indicator veg" style={{ width: 10, height: 10 }} />
+              <span>Veg Only</span>
+            </MotionButton>
+          </div>
+
           {/* Side-by-side Category Buttons Navigation */}
           <div className="category-buttons-container" role="tablist" aria-label="Menu categories">
             {categoryNames.map(cat => {
               const count = cat === 'All'
-                ? menuItems.length
-                : (categories.find(([c]) => c === cat)?.[1].length || 0);
+                ? filteredMenuItems.length
+                : filteredMenuItems.filter(item => (item.category || 'General') === cat).length;
               return (
                 <MotionButton
                   key={cat}
