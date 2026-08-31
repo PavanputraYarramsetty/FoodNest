@@ -9,6 +9,7 @@ import MotionButton from '../../components/ui/MotionButton';
 
 const ManageMenu = () => {
   const [menuItems, setMenuItems] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -55,6 +56,21 @@ const ManageMenu = () => {
       setLoading(false);
     }
   };
+
+  const categories = Array.from(new Set(menuItems.map(item => item.category || 'General')))
+    .sort((a, b) => {
+      const isStarterA = a.toLowerCase().includes('starter') || a.toLowerCase().includes('starer');
+      const isStarterB = b.toLowerCase().includes('starter') || b.toLowerCase().includes('starer');
+      if (isStarterA && !isStarterB) return -1;
+      if (!isStarterA && isStarterB) return 1;
+      return a.localeCompare(b);
+    });
+
+  const categoryNames = ['All', ...categories];
+
+  const filteredMenuItems = selectedCategory === 'All'
+    ? menuItems
+    : menuItems.filter(item => (item.category || 'General') === selectedCategory);
 
   const openAddModal = () => {
     setEditItem(null);
@@ -198,6 +214,30 @@ const ManageMenu = () => {
         {message.text}
       </AlertBanner>
 
+      {/* Side-by-side Category Buttons Navigation */}
+      {menuItems.length > 0 && (
+        <div className="category-buttons-container" style={{ marginBottom: '1.25rem' }} role="tablist" aria-label="Manage menu categories">
+          {categoryNames.map(cat => {
+            const count = cat === 'All'
+              ? menuItems.length
+              : menuItems.filter(item => (item.category || 'General') === cat).length;
+            return (
+              <MotionButton
+                key={cat}
+                type="button"
+                className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+                whileTap={{ scale: 0.95 }}
+                id={`manage-cat-btn-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+              >
+                <span>{cat}</span>
+                <span className="category-btn-count">{count}</span>
+              </MotionButton>
+            );
+          })}
+        </div>
+      )}
+
       <div className="table-wrapper">
         <table className="table table-responsive-cards">
           <thead>
@@ -211,7 +251,7 @@ const ManageMenu = () => {
             </tr>
           </thead>
           <tbody>
-            {menuItems.map(item => (
+            {filteredMenuItems.map(item => (
               <tr key={item.id}>
                 <td data-label="Image">
                   {item.image_url ? (
