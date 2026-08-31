@@ -404,7 +404,7 @@ router.get('/statistics', async (req, res) => {
     let query = supabase
       .from('orders')
       .select('order_items (item_name, quantity, price), users!orders_customer_id_fkey (hostel_block)')
-      .in('status', ['Preparing', 'Completed'])
+      .neq('status', 'Cancelled')
       .eq('is_cleared_by_admin', false);
 
     if (startDate && endDate) {
