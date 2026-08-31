@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'motion/react';
-import { ShoppingCart, Plus, Minus, X, CheckCircle, AlertCircle, Package, UtensilsCrossed } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, X, CheckCircle, AlertCircle, Package, UtensilsCrossed, ArrowLeft, Banknote } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AnimatedModal from '../../components/ui/AnimatedModal';
 import AlertBanner from '../../components/ui/AlertBanner';
@@ -23,6 +23,8 @@ const MenuPage = () => {
     }
   });
   const [showCart, setShowCart] = useState(false);
+  const [cartStep, setCartStep] = useState('cart'); // 'cart' or 'payment'
+  const [paymentMethod, setPaymentMethod] = useState('COD');
   const [loading, setLoading] = useState(true);
   const [orderLoading, setOrderLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -73,6 +75,19 @@ const MenuPage = () => {
 
   const getCartTotal = () => Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+  const handleProceedToPayment = () => {
+    setCartStep('payment');
+  };
+
+  const handleBackToCart = () => {
+    setCartStep('cart');
+  };
+
+  const handleCloseCart = () => {
+    setShowCart(false);
+    setCartStep('cart');
+  };
+
   const placeOrder = async () => {
     const items = Object.values(cart).map(item => ({
       menuItem: item.id,
@@ -83,9 +98,10 @@ const MenuPage = () => {
 
     setOrderLoading(true);
     try {
-      await axios.post('/orders', { items });
+      await axios.post('/orders', { items, payment_method: paymentMethod });
       setCart({});
       setShowCart(false);
+      setCartStep('cart');
       setMessage({ type: 'success', text: 'Order placed successfully! 🎉' });
       setTimeout(() => setMessage({ type: '', text: '' }), 4000);
     } catch (err) {
@@ -235,72 +251,137 @@ const MenuPage = () => {
         </motion.div>
       )}
 
-      <AnimatedModal open={showCart} onClose={() => setShowCart(false)}>
-        <div className="modal-header">
-          <h3>Your Cart</h3>
-          <button className="btn btn-ghost" onClick={() => setShowCart(false)} id="close-cart" aria-label="Close cart">
-            <X size={22} />
-          </button>
-        </div>
+      <AnimatedModal open={showCart} onClose={handleCloseCart}>
+        {cartStep === 'cart' ? (
+          <>
+            <div className="modal-header">
+              <h3>Your Cart</h3>
+              <button className="btn btn-ghost" onClick={handleCloseCart} id="close-cart" aria-label="Close cart">
+                <X size={22} />
+              </button>
+            </div>
 
-        <div className="modal-body">
-          {Object.values(cart).length === 0 ? (
-            <EmptyState icon={ShoppingCart} description="Your cart is empty" />
-          ) : (
-            <>
-              {Object.values(cart).map(item => (
-                <div className="cart-item" key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {item.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt={item.item_name}
-                      className="menu-table-thumb"
-                      style={{ width: 42, height: 42 }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div
-                    className="menu-table-thumb-placeholder"
-                    style={{ display: item.image_url ? 'none' : 'flex', width: 42, height: 42 }}
-                  >
-                    <UtensilsCrossed size={18} />
-                  </div>
-                  <div className="cart-item-info" style={{ flex: 1 }}>
-                    <h4>{item.item_name}</h4>
-                    <p>₹{item.price} × {item.quantity}</p>
-                  </div>
-                  <div className="quantity-control">
-                    <MotionButton className="quantity-btn" onClick={() => removeFromCart(item.id)} aria-label={`Remove one ${item.item_name}`}>
-                      <Minus size={14} />
-                    </MotionButton>
-                    <span className="quantity-value">{item.quantity}</span>
-                    <MotionButton className="quantity-btn" onClick={() => addToCart(item)} aria-label={`Add one more ${item.item_name}`}>
-                      <Plus size={14} />
-                    </MotionButton>
-                  </div>
-                </div>
-              ))}
+            <div className="modal-body">
+              {Object.values(cart).length === 0 ? (
+                <EmptyState icon={ShoppingCart} description="Your cart is empty" />
+              ) : (
+                <>
+                  {Object.values(cart).map(item => (
+                    <div className="cart-item" key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.item_name}
+                          className="menu-table-thumb"
+                          style={{ width: 42, height: 42 }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="menu-table-thumb-placeholder"
+                        style={{ display: item.image_url ? 'none' : 'flex', width: 42, height: 42 }}
+                      >
+                        <UtensilsCrossed size={18} />
+                      </div>
+                      <div className="cart-item-info" style={{ flex: 1 }}>
+                        <h4>{item.item_name}</h4>
+                        <p>₹{item.price} × {item.quantity}</p>
+                      </div>
+                      <div className="quantity-control">
+                        <MotionButton className="quantity-btn" onClick={() => removeFromCart(item.id)} aria-label={`Remove one ${item.item_name}`}>
+                          <Minus size={14} />
+                        </MotionButton>
+                        <span className="quantity-value">{item.quantity}</span>
+                        <MotionButton className="quantity-btn" onClick={() => addToCart(item)} aria-label={`Add one more ${item.item_name}`}>
+                          <Plus size={14} />
+                        </MotionButton>
+                      </div>
+                    </div>
+                  ))}
 
-              <div className="cart-total">
-                <span className="cart-total-label">Total</span>
-                <span className="cart-total-value">₹{getCartTotal()}</span>
+                  <div className="cart-total">
+                    <span className="cart-total-label">Total</span>
+                    <span className="cart-total-value">₹{getCartTotal()}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {Object.values(cart).length > 0 && (
+              <div className="modal-footer">
+                <MotionButton className="btn btn-secondary" onClick={() => setCart({})} id="clear-cart">
+                  Clear Cart
+                </MotionButton>
+                <MotionButton className="btn btn-primary" onClick={handleProceedToPayment} id="proceed-to-payment">
+                  Place Order
+                </MotionButton>
               </div>
-            </>
-          )}
-        </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="modal-header">
+              <h3>Payment Method</h3>
+              <button className="btn btn-ghost" onClick={handleCloseCart} id="close-payment" aria-label="Close">
+                <X size={22} />
+              </button>
+            </div>
 
-        {Object.values(cart).length > 0 && (
-          <div className="modal-footer">
-            <MotionButton className="btn btn-secondary" onClick={() => setCart({})} id="clear-cart">
-              Clear Cart
-            </MotionButton>
-            <MotionButton className="btn btn-primary" onClick={placeOrder} disabled={orderLoading} id="place-order">
-              {orderLoading ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : 'Place Order'}
-            </MotionButton>
-          </div>
+            <div className="modal-body">
+              <div className="payment-step-summary">
+                <div className="payment-step-summary-row">
+                  <span>Items</span>
+                  <span>{getCartCount()}</span>
+                </div>
+                <div className="payment-step-summary-row payment-step-summary-total">
+                  <span>Total Amount</span>
+                  <span>₹{getCartTotal()}</span>
+                </div>
+              </div>
+
+              <div className="payment-method-section">
+                <label className="payment-method-label">Select Payment Method</label>
+                <div className="payment-method-options">
+                  <label
+                    className={`payment-method-option ${paymentMethod === 'COD' ? 'selected' : ''}`}
+                    htmlFor="payment-cod"
+                  >
+                    <input
+                      type="radio"
+                      id="payment-cod"
+                      name="paymentMethod"
+                      value="COD"
+                      checked={paymentMethod === 'COD'}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="payment-method-radio"
+                    />
+                    <div className="payment-method-icon">
+                      <Banknote size={22} />
+                    </div>
+                    <div className="payment-method-details">
+                      <span className="payment-method-name">Cash On Delivery</span>
+                      <span className="payment-method-desc">Pay when you receive your order</span>
+                    </div>
+                    <div className="payment-method-check">
+                      {paymentMethod === 'COD' && <CheckCircle size={18} />}
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <MotionButton className="btn btn-secondary" onClick={handleBackToCart} id="back-to-cart">
+                <ArrowLeft size={16} /> Back
+              </MotionButton>
+              <MotionButton className="btn btn-primary" onClick={placeOrder} disabled={orderLoading} id="confirm-order">
+                {orderLoading ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : 'Confirm Order'}
+              </MotionButton>
+            </div>
+          </>
         )}
       </AnimatedModal>
     </div>

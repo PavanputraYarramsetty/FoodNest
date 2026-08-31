@@ -1477,6 +1477,157 @@ select.form-input {
   color: var(--primary-400);
 }
 
+/* ======================== ORDER ACTIONS ======================== */
+.order-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-invoice {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+  transition: all var(--transition-base);
+}
+
+.btn-invoice:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.1));
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+}
+
+.badge-payment {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ======================== PAYMENT METHOD SELECTION ======================== */
+.payment-step-summary {
+  background: var(--gradient-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.payment-step-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.payment-step-summary-total {
+  border-top: 1px solid var(--border-color);
+  margin-top: 0.35rem;
+  padding-top: 0.6rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primary-400);
+  font-family: var(--font-display);
+}
+
+.payment-method-section {
+  margin-top: 0.5rem;
+}
+
+.payment-method-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.payment-method-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.payment-method-option {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 2px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: var(--gradient-card);
+}
+
+.payment-method-option:hover {
+  border-color: var(--border-accent);
+  background: var(--bg-card-hover);
+}
+
+.payment-method-option.selected {
+  border-color: var(--primary-500);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(249, 115, 22, 0.02));
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.1);
+}
+
+.payment-method-radio {
+  display: none;
+}
+
+.payment-method-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+  color: #4ade80;
+  flex-shrink: 0;
+}
+
+.payment-method-option.selected .payment-method-icon {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.08));
+  color: var(--primary-400);
+}
+
+.payment-method-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.payment-method-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.payment-method-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.payment-method-check {
+  color: var(--primary-400);
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
 /* ======================== DATE PICKER ======================== */
 .date-picker-row {
   display: flex;

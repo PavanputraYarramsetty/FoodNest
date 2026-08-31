@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'motion/react';
-import { Package, XCircle } from 'lucide-react';
+import { Package, XCircle, FileDown } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
 import MotionButton from '../../components/ui/MotionButton';
 import { fadeUp } from '../../lib/motion';
+import { useAuth } from '../../context/AuthContext';
+import generateInvoice from '../../components/ui/InvoiceGenerator';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchOrders();
@@ -37,6 +41,18 @@ const Orders = () => {
     } catch (err) {
       console.error('Failed to cancel order:', err);
       alert(err.response?.data?.message || 'Failed to cancel order. Please try again.');
+    }
+  };
+
+  const handleDownloadInvoice = async (order) => {
+    setDownloadingId(order.id);
+    try {
+      await generateInvoice(order, user);
+    } catch (err) {
+      console.error('Failed to generate invoice:', err);
+      alert('Failed to generate invoice. Please try again.');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -79,9 +95,16 @@ const Orders = () => {
                   {formatDate(order.created_at)}
                 </div>
               </div>
-              <span className={`badge badge-${order.status.toLowerCase()}`}>
-                {order.status}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {order.payment_method && (
+                  <span className="badge badge-payment">
+                    {order.payment_method === 'COD' ? 'COD' : order.payment_method}
+                  </span>
+                )}
+                <span className={`badge badge-${order.status.toLowerCase()}`}>
+                  {order.status}
+                </span>
+              </div>
             </div>
 
             <div className="order-items">
@@ -93,13 +116,27 @@ const Orders = () => {
               ))}
             </div>
 
-            <div className="order-total" style={{ borderBottom: order.status === 'Pending' ? '1px solid var(--border-color)' : 'none', paddingBottom: order.status === 'Pending' ? '1rem' : '0' }}>
+            <div className="order-total" style={{ borderBottom: (order.status === 'Pending' || order.status !== 'Cancelled') ? '1px solid var(--border-color)' : 'none', paddingBottom: '1rem' }}>
               <span>Total</span>
               <span>₹{order.total_amount}</span>
             </div>
 
-            {order.status === 'Pending' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div className="order-actions">
+              <MotionButton
+                className="btn btn-invoice btn-sm"
+                onClick={() => handleDownloadInvoice(order)}
+                disabled={downloadingId === order.id}
+                id={`download-invoice-${order.id}`}
+              >
+                {downloadingId === order.id ? (
+                  <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                ) : (
+                  <FileDown size={14} />
+                )}
+                Download Invoice
+              </MotionButton>
+
+              {order.status === 'Pending' && (
                 <MotionButton
                   className="btn btn-danger btn-sm"
                   onClick={() => cancelOrder(order.id)}
@@ -107,8 +144,8 @@ const Orders = () => {
                 >
                   <XCircle size={14} /> Cancel Order
                 </MotionButton>
-              </div>
-            )}
+              )}
+            </div>
           </motion.div>
         ))
       )}

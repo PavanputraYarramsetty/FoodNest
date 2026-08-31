@@ -7,11 +7,15 @@ const router = express.Router();
 // POST /api/orders — Place a new order
 router.post('/', protect, async (req, res) => {
   try {
-    const { items } = req.body;
+    const { items, payment_method } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ success: false, message: 'No items in order' });
     }
+
+    // Validate payment method (currently only COD supported)
+    const validPaymentMethods = ['COD'];
+    const paymentMethod = validPaymentMethods.includes(payment_method) ? payment_method : 'COD';
 
     // Validate items and calculate total
     let totalAmount = 0;
@@ -56,7 +60,8 @@ router.post('/', protect, async (req, res) => {
         customer_id: req.user.id,
         total_amount: totalAmount,
         status: 'Pending',
-        order_number: nextOrderNum
+        order_number: nextOrderNum,
+        payment_method: paymentMethod
       })
       .select()
       .single();
