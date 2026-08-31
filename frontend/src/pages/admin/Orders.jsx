@@ -38,11 +38,12 @@ const AdminOrders = () => {
     const orderNum = order.order_number || (order.id ? order.id.substring(0, 6).toUpperCase() : 'ORDER');
     const totalAmount = order.total_amount || 0;
     
-    let msgText = `Hello ${customerName}! 👋 Update regarding your Order #${orderNum} at AparnaCanteen. Total Amount: ₹${totalAmount}.`;
+    let msgText = `👋 *Order Update – AparnaCanteen*\n\nHello ${customerName}! 😊\n\nUpdate regarding your *Order #${orderNum}*.\n*Total Amount:* ₹${totalAmount}\n\n— *AparnaCanteen*`;
+
     if (order.status === 'Preparing') {
-      msgText = `Hello ${customerName}! 👨‍🍳 Your Order #${orderNum} at AparnaCanteen is now PREPARING in the kitchen! Total Amount: ₹${totalAmount}. We will serve it to you shortly.`;
+      msgText = `👨‍🍳 *Order Update – AparnaCanteen*\n\nHello ${customerName}! 😊\n\nYour *Order #${orderNum}* is now being *prepared in the kitchen*. 👨‍🍳\n*Total Amount:* ₹${totalAmount}\n\nWe’ll have your order ready and served to you shortly. Thank you for your patience! 🙏\n\n— *AparnaCanteen*`;
     } else if (order.status === 'Completed') {
-      msgText = `Hello ${customerName}! ✅ Your Order #${orderNum} at AparnaCanteen is COMPLETED! Please collect it from the counter. Thank you for ordering!!`;
+      msgText = `✅ *Order Completed – AparnaCanteen*\n\nHello ${customerName}! 😊\n\nYour *Order #${orderNum}* has been *successfully completed*. 🎉\n\nThank you for ordering from *AparnaCanteen*! We hope you enjoyed your meal. ❤️\n\nWe look forward to serving you again! 🙏\n\n— *AparnaCanteen*`;
     }
 
     const encodedMsg = encodeURIComponent(msgText);
