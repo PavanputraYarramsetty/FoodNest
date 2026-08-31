@@ -35,7 +35,7 @@ const generateInvoice = async (order, user) => {
   // ══════════════════════════════════════════════
   // HEADER — Gradient banner with logo + name
   // ══════════════════════════════════════════════
-  const headerH = 48;
+  const headerH = 46;
 
   // Draw gradient header background (simulate with multiple rects)
   for (let i = 0; i < headerH; i++) {
@@ -56,16 +56,16 @@ const generateInvoice = async (order, user) => {
       logoImg.onerror = reject;
       logoImg.src = '/favicon.jpg';
     });
-    const logoS = 18;
+    const logoS = 16;
+    const logoY = 3;
     // White circle behind logo
     doc.setFillColor(...white);
-    doc.circle(pw / 2, 14, logoS / 2 + 1.5, 'F');
-    doc.addImage(logoImg, 'JPEG', (pw - logoS) / 2, 5, logoS, logoS);
+    doc.circle(pw / 2, logoY + logoS / 2, logoS / 2 + 1, 'F');
+    doc.addImage(logoImg, 'JPEG', (pw - logoS) / 2, logoY, logoS, logoS);
+    y = logoY + logoS + 4; // position text below logo with 4mm gap
   } catch {
-    // skip logo on error
+    y = 14; // fallback if logo fails to load
   }
-
-  y = 30;
 
   // Canteen name
   doc.setTextColor(...white);
