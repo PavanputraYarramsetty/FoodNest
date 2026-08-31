@@ -47,7 +47,7 @@ const AdminHome = () => {
       let grandCatRevenue = 0;
 
       orders.forEach(order => {
-        if (order.status === 'Cancelled') return;
+        if (order.status !== 'Preparing' && order.status !== 'Completed') return;
         (order.order_items || []).forEach(item => {
           const name = item.item_name;
           const cat = menuCatMap[name] || item.category || 'General';

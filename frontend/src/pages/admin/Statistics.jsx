@@ -85,33 +85,13 @@ const Statistics = () => {
               </tr>
             </thead>
             <tbody>
-              {(() => {
-                const maxStatsUnits = Math.max(1, ...(items.map(i => i.totalQuantity)));
-                return items.map((item) => {
-                  const percent = Math.round((item.totalQuantity / maxStatsUnits) * 100);
-                  return (
-                    <tr key={item._id}>
-                      <td data-label="Menu Item" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item._id}</td>
-                      <td data-label="Quantity" style={{ fontWeight: 600 }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', minWidth: '120px' }}>
-                          <span>{item.totalQuantity} units</span>
-                          <div className="item-progress-track" style={{ height: 5 }}>
-                            <div
-                              className="item-progress-fill"
-                              style={{
-                                width: `${percent}%`,
-                                background: 'linear-gradient(90deg, #3b82f6 0%, #10b981 100%)'
-                              }}
-                              title={`${percent}% relative sales volume`}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td data-label="Revenue" style={{ color: 'var(--success)', fontWeight: 600 }}>₹{item.totalRevenue}</td>
-                    </tr>
-                  );
-                });
-              })()}
+              {items.map((item) => (
+                <tr key={item._id}>
+                  <td data-label="Menu Item" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item._id}</td>
+                  <td data-label="Quantity" style={{ fontWeight: 600 }}>{item.totalQuantity} units</td>
+                  <td data-label="Revenue" style={{ color: 'var(--success)', fontWeight: 600 }}>₹{item.totalRevenue}</td>
+                </tr>
+              ))}
               {items.length === 0 && (
                 <tr>
                   <td colSpan="3" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
