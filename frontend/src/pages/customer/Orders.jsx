@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'motion/react';
-import { Package, XCircle, FileDown, Clock, ChefHat, CheckCircle2 } from 'lucide-react';
+import { Package, XCircle, FileDown, Clock, ChefHat, CheckCircle2, ChevronRight } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
@@ -66,8 +66,8 @@ const Orders = () => {
   const renderOrderTimeline = (status) => {
     if (status === 'Cancelled') {
       return (
-        <div className="order-timeline-wrapper" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontWeight: 600, fontSize: '0.9rem', justifyContent: 'center' }}>
+        <div className="order-stepper-container status-cancelled">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <XCircle size={18} />
             <span>Order Cancelled</span>
           </div>
@@ -79,8 +79,6 @@ const Orders = () => {
     if (status === 'Preparing') currentStep = 2;
     if (status === 'Completed') currentStep = 3;
 
-    const progressPercent = currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%';
-
     const steps = [
       { step: 1, label: 'Order Placed', icon: Clock },
       { step: 2, label: 'Preparing', icon: ChefHat },
@@ -88,27 +86,28 @@ const Orders = () => {
     ];
 
     return (
-      <div className="order-timeline-wrapper">
-        <div className="order-timeline-steps">
-          <div className="timeline-line">
-            <div className="timeline-line-progress" style={{ width: progressPercent }} />
-          </div>
-          {steps.map(({ step, label, icon: Icon }) => {
-            const isCompleted = currentStep > step;
-            const isCurrent = currentStep === step;
-            return (
-              <div
-                key={step}
-                className={`timeline-step ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}
-              >
-                <div className="timeline-step-icon">
-                  <Icon size={18} />
+      <div className="order-stepper-container">
+        {steps.map(({ step, label, icon: Icon }, idx) => {
+          const isCompleted = currentStep > step;
+          const isCurrent = currentStep === step;
+          const statusClass = isCompleted ? 'step-completed' : isCurrent ? 'step-active' : 'step-upcoming';
+
+          return (
+            <div key={step} className="stepper-node-wrapper">
+              <div className={`stepper-pill ${statusClass}`}>
+                <div className="stepper-pill-icon">
+                  {isCompleted ? <CheckCircle2 size={16} /> : <Icon size={16} />}
                 </div>
-                <span className="timeline-step-label">{label}</span>
+                <span className="stepper-pill-label">{label}</span>
               </div>
-            );
-          })}
-        </div>
+              {idx < steps.length - 1 && (
+                <div className={`stepper-connector ${currentStep > step ? 'active' : ''}`}>
+                  <ChevronRight size={16} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };

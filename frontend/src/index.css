@@ -2574,97 +2574,95 @@ select.form-input {
   transform: translateY(-1px);
 }
 
-/* Customer Order Visual Timeline Progress Bar */
-.order-timeline-wrapper {
-  margin: 1.25rem 0;
-  padding: 1rem 0.75rem;
-  background: var(--bg-input, rgba(0, 0, 0, 0.2));
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-}
-
-.order-timeline-steps {
+/* Connected Step Pills Customer Order Tracker UI */
+.order-stepper-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: relative;
+  gap: 0.5rem;
+  margin: 1.25rem 0;
+  padding: 0.85rem 1rem;
+  background: var(--bg-input, rgba(0, 0, 0, 0.25));
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.timeline-step {
+.order-stepper-container.status-cancelled {
+  justify-content: center;
+  color: #ef4444;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.stepper-node-wrapper {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  position: relative;
-  z-index: 2;
+  gap: 0.5rem;
   flex: 1;
+  justify-content: center;
 }
 
-.timeline-step-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg-elevated, #1e293b);
-  border: 2px solid var(--border-color, #334155);
-  color: var(--text-muted, #64748b);
+.stepper-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.stepper-pill-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
-.timeline-step.completed .timeline-step-icon {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: #22c55e;
+.stepper-pill.step-completed {
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.35);
   color: #22c55e;
 }
 
-.timeline-step.current .timeline-step-icon {
+.stepper-pill.step-active {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  border-color: transparent;
+  border: 1px solid transparent;
   color: #ffffff;
-  box-shadow: 0 0 14px rgba(249, 115, 22, 0.5);
-  transform: scale(1.1);
-  animation: pulseCurrentStep 2s infinite;
-}
-
-@keyframes pulseCurrentStep {
-  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
-}
-
-.timeline-step-label {
-  margin-top: 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-muted, #64748b);
-  text-align: center;
-}
-
-.timeline-step.completed .timeline-step-label {
-  color: #22c55e;
-}
-
-.timeline-step.current .timeline-step-label {
-  color: var(--primary-400, #fb923c);
   font-weight: 700;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.45);
+  animation: pulseActivePill 2s infinite;
 }
 
-.timeline-line {
-  position: absolute;
-  top: 18px;
-  left: 15%;
-  right: 15%;
-  height: 3px;
-  background: var(--border-color, #334155);
-  z-index: 1;
+@keyframes pulseActivePill {
+  0% { transform: scale(1); box-shadow: 0 4px 14px rgba(249, 115, 22, 0.45); }
+  50% { transform: scale(1.03); box-shadow: 0 4px 20px rgba(249, 115, 22, 0.65); }
+  100% { transform: scale(1); box-shadow: 0 4px 14px rgba(249, 115, 22, 0.45); }
 }
 
-.timeline-line-progress {
-  height: 100%;
-  background: linear-gradient(90deg, #22c55e 0%, #f97316 100%);
-  transition: width 0.4s ease;
-  border-radius: 9999px;
+.stepper-pill.step-upcoming {
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  color: var(--text-muted, #64748b);
+  opacity: 0.7;
+}
+
+.stepper-connector {
+  color: var(--text-muted, #475569);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.stepper-connector.active {
+  color: #22c55e;
 }
 
 @keyframes bellRing {
