@@ -82,9 +82,9 @@ const Orders = () => {
     const progressPercent = currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%';
 
     const steps = [
-      { step: 1, label: 'Order Placed', defaultIcon: Clock },
-      { step: 2, label: 'Preparing', defaultIcon: ChefHat },
-      { step: 3, label: 'Ready / Served', defaultIcon: CheckCircle2 }
+      { step: 1, label: 'Order Placed', icon: Clock },
+      { step: 2, label: 'Preparing', icon: ChefHat },
+      { step: 3, label: 'Ready / Served', icon: CheckCircle2 }
     ];
 
     return (
@@ -93,17 +93,13 @@ const Orders = () => {
           <div className="timeline-line">
             <div className="timeline-line-progress" style={{ width: progressPercent }} />
           </div>
-          {steps.map(({ step, label, defaultIcon: DefaultIcon }) => {
-            const isReached = step <= currentStep;
-            const isCurrentActive = step === currentStep && status !== 'Completed';
-
-            // Show CheckCircle2 (tick mark) for all reached/completed stages!
-            const Icon = isReached ? CheckCircle2 : DefaultIcon;
-
+          {steps.map(({ step, label, icon: Icon }) => {
+            const isCompleted = currentStep > step;
+            const isCurrent = currentStep === step;
             return (
               <div
                 key={step}
-                className={`timeline-step ${isReached ? 'completed' : ''} ${isCurrentActive ? 'current' : ''}`}
+                className={`timeline-step ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}
               >
                 <div className="timeline-step-icon">
                   <Icon size={18} />
