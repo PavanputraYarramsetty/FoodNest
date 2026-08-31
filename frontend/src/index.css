@@ -3066,3 +3066,19 @@ select.form-input {
     width: 100%;
   }
 }
+
+/* 1-Click WhatsApp Button Styling */
+.btn-whatsapp {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff !important;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+  transition: all 0.25s ease;
+}
+
+.btn-whatsapp:hover {
+  background: linear-gradient(135deg, #1fb355 0%, #0e6b60 100%);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.45);
+  transform: translateY(-1px);
+}

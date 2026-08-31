@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, BellRing, Volume2 } from 'lucide-react';
+import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, BellRing, Volume2, MessageCircle } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
@@ -21,6 +21,34 @@ const AdminOrders = () => {
   const prevOrdersRef = useRef([]);
   const isFirstLoadRef = useRef(true);
   const audioCtxRef = useRef(null);
+
+  const handleWhatsAppNotify = (order) => {
+    const rawPhone = order.customer?.phone;
+    if (!rawPhone) {
+      alert('No phone number available for this customer');
+      return;
+    }
+
+    let cleaned = rawPhone.toString().replace(/\D/g, '');
+    if (cleaned.length === 10) {
+      cleaned = '91' + cleaned;
+    }
+
+    const customerName = order.customer?.name || 'Customer';
+    const orderNum = order.order_number || (order.id ? order.id.substring(0, 6).toUpperCase() : 'ORDER');
+    const totalAmount = order.total_amount || 0;
+    
+    let msgText = `Hello ${customerName}! 👋 Update regarding your Order #${orderNum} at AparnaCanteen. Total Amount: ₹${totalAmount}.`;
+    if (order.status === 'Preparing') {
+      msgText = `Hello ${customerName}! 👨‍🍳 Your Order #${orderNum} at AparnaCanteen is now PREPARING in the kitchen! Total Amount: ₹${totalAmount}. We will serve it to you shortly.`;
+    } else if (order.status === 'Completed') {
+      msgText = `Hello ${customerName}! ✅ Your Order #${orderNum} at AparnaCanteen is COMPLETED! Please collect it from the counter. Thank you for ordering!!`;
+    }
+
+    const encodedMsg = encodeURIComponent(msgText);
+    const whatsappUrl = `https://wa.me/${cleaned}?text=${encodedMsg}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // Initialize and unlock audio context on any user interaction
   const getAudioContext = () => {
@@ -416,6 +444,17 @@ const AdminOrders = () => {
                           id={`delete-order-${order.id}`}
                         >
                           <Trash2 size={14} />
+                        </MotionButton>
+                      )}
+                      {order.customer?.phone && (
+                        <MotionButton
+                          className="btn btn-whatsapp btn-sm"
+                          onClick={() => handleWhatsAppNotify(order)}
+                          title="Send WhatsApp Notification to Customer"
+                          id={`whatsapp-notify-btn-${order.id}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                        >
+                          <MessageCircle size={14} /> WhatsApp
                         </MotionButton>
                       )}
                       {order.customer?.phone && (
