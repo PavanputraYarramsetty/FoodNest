@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { Home, UtensilsCrossed, ClipboardList, DollarSign, BarChart3, Users, Menu, X, Shield, Megaphone, Store, MessageSquarePlus, BellRing, ChevronRight } from 'lucide-react';
+import { Home, UtensilsCrossed, ClipboardList, DollarSign, BarChart3, Users, Menu, X, Shield, Megaphone, Store, MessageSquarePlus, BellRing, ChevronRight, Smartphone } from 'lucide-react';
 import AppSidebar from '../components/layout/AppSidebar';
 import PageTransition from '../components/ui/PageTransition';
 
@@ -143,6 +143,7 @@ const AdminLayout = () => {
     { to: '/admin/manage-customers', icon: Users, label: 'Customers' },
     { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
     { to: '/admin/feedbacks', icon: MessageSquarePlus, label: 'Feedbacks' },
+    { to: '/admin/whatsapp-qr', icon: Smartphone, label: 'WhatsApp Connect' },
   ];
 
   const adminBadge = (

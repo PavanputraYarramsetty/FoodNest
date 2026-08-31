@@ -3,11 +3,17 @@ const ExcelJS = require('exceljs');
 const bcrypt = require('bcryptjs');
 const supabase = require('../db');
 const { protect, adminOnly } = require('../middleware/auth');
+const { getWhatsAppStatus, sendAutoWhatsApp } = require('../services/baileysService');
 
 const router = express.Router();
 
 // All admin routes require JWT + admin role
 router.use(protect, adminOnly);
+
+// ============== WHATSAPP SCANNER STATUS ==============
+router.get('/whatsapp/status', (req, res) => {
+  res.json({ success: true, ...getWhatsAppStatus() });
+});
 
 // ============== MENU MANAGEMENT ==============
 
@@ -247,6 +253,23 @@ router.put('/orders/:id', async (req, res) => {
     }
 
     const normalized = { ...order, customer: order.users, users: undefined };
+
+    // Trigger Automated Baileys WhatsApp Message
+    const customerPhone = order.users?.phone;
+    const customerName = order.users?.name || 'Customer';
+    const orderNum = order.order_number || (order.id ? order.id.substring(0, 6).toUpperCase() : 'ORDER');
+    const totalAmount = order.total_amount || 0;
+
+    if (customerPhone) {
+      if (status === 'Preparing') {
+        const msgText = `👨‍🍳 *Order Update – AparnaCanteen*\n\nHello ${customerName}! 😊\n\nYour *Order #${orderNum}* is now being *prepared in the kitchen*. 👨‍🍳\n*Total Amount:* ₹${totalAmount}\n\nWe’ll have your order ready and served to you shortly. Thank you for your patience! 🙏\n\n— *AparnaCanteen*`;
+        sendAutoWhatsApp(customerPhone, msgText);
+      } else if (status === 'Completed') {
+        const msgText = `✅ *Order Completed – AparnaCanteen*\n\nHello ${customerName}! 😊\n\nYour *Order #${orderNum}* has been *successfully completed*. 🎉\n\nThank you for ordering from *AparnaCanteen*! We hope you enjoyed your meal. ❤️\n\nWe look forward to serving you again! 🙏\n\n— *AparnaCanteen*`;
+        sendAutoWhatsApp(customerPhone, msgText);
+      }
+    }
+
     res.json({ success: true, data: normalized });
 
   } catch (error) {

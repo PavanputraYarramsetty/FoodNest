@@ -30,6 +30,7 @@ import ManageCustomers from './pages/admin/ManageCustomers';
 import AdminAnnouncements from './pages/admin/Announcements';
 import CounterSale from './pages/admin/CounterSale';
 import AdminFeedbacks from './pages/admin/Feedbacks';
+import WhatsAppQR from './pages/admin/WhatsAppQR';
 
 function App() {
   return (
@@ -78,6 +79,7 @@ function App() {
             <Route path="announcements" element={<AdminAnnouncements />} />
             <Route path="counter-sale" element={<CounterSale />} />
             <Route path="feedbacks" element={<AdminFeedbacks />} />
+            <Route path="whatsapp-qr" element={<WhatsAppQR />} />
             <Route path="" element={<Navigate to="home" replace />} />
           </Route>
 
