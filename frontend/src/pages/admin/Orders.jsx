@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat } from 'lucide-react';
+import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, BellRing, Volume2 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
@@ -9,6 +9,8 @@ import MotionButton from '../../components/ui/MotionButton';
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [autoSync, setAutoSync] = useState(true);
+  const [newOrderAlert, setNewOrderAlert] = useState(null);
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -16,28 +18,95 @@ const AdminOrders = () => {
   const [orderIdFilter, setOrderIdFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const prevOrdersRef = useRef([]);
+  const isFirstLoadRef = useRef(true);
+
+  // Web Audio API Synthesizer - Generates a pleasant two-tone chime sound
+  const playOrderChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      // First Tone (587.33 Hz - D5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.3);
+
+      // Second Tone (880 Hz - A5)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+      gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.15);
+      osc2.stop(ctx.currentTime + 0.6);
+    } catch (e) {
+      console.warn('Audio chime playback warning:', e);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
   }, [startDateFilter, endDateFilter, statusFilter]);
 
-  const fetchOrders = async () => {
+  // Live Auto-Refresh Interval
+  useEffect(() => {
+    if (!autoSync) return;
+    const interval = setInterval(() => {
+      fetchOrders(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [autoSync, startDateFilter, endDateFilter, statusFilter]);
+
+  const fetchOrders = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       let url = '/admin/orders?';
       if (startDateFilter && endDateFilter) url += `startDate=${startDateFilter}&endDate=${endDateFilter}&`;
       if (statusFilter) url += `status=${statusFilter}&`;
       const res = await axios.get(url);
-      setOrders(res.data.data);
+      const fetchedOrders = res.data.data || [];
+
+      // Check if new orders arrived since last poll
+      if (!isFirstLoadRef.current && prevOrdersRef.current.length > 0) {
+        const newIncoming = fetchedOrders.filter(
+          order => !prevOrdersRef.current.some(prev => prev.id === order.id)
+        );
+        if (newIncoming.length > 0) {
+          playOrderChime();
+          setNewOrderAlert({
+            count: newIncoming.length,
+            latestOrderNumber: newIncoming[0]?.order_number || newIncoming[0]?.id?.substring(0, 6)
+          });
+          setTimeout(() => setNewOrderAlert(null), 8000);
+        }
+      }
+
+      prevOrdersRef.current = fetchedOrders;
+      isFirstLoadRef.current = false;
+      setOrders(fetchedOrders);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
   const updateStatus = async (orderId, status) => {
     try {
       await axios.put(`/admin/orders/${orderId}`, { status });
-      fetchOrders();
+      fetchOrders(true);
     } catch (err) {
       console.error('Failed to update status:', err);
     }
@@ -48,6 +117,7 @@ const AdminOrders = () => {
     try {
       await axios.delete('/admin/orders');
       setOrders([]);
+      prevOrdersRef.current = [];
     } catch (err) {
       console.error('Failed to clear orders:', err);
     }
@@ -103,16 +173,57 @@ const AdminOrders = () => {
         title="Orders"
         subtitle="View and manage all customer orders"
         actions={
-          <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <MotionButton
+              className={`btn ${autoSync ? 'btn-success' : 'btn-ghost'}`}
+              onClick={() => setAutoSync(!autoSync)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              title={autoSync ? 'Live auto-sync active (checking every 10s)' : 'Live auto-sync paused'}
+            >
+              <span className={`live-pulse-dot ${autoSync ? 'active' : ''}`} />
+              Auto-Sync: {autoSync ? 'ON' : 'OFF'}
+            </MotionButton>
+            <MotionButton
+              className="btn btn-ghost"
+              onClick={playOrderChime}
+              title="Test Order Chime Sound"
+              style={{ padding: '0.55rem 0.75rem' }}
+            >
+              <Volume2 size={16} />
+            </MotionButton>
             <MotionButton className="btn btn-secondary" onClick={downloadExcel} id="download-excel">
               <Download size={18} /> Download Excel
             </MotionButton>
             <MotionButton className="btn btn-ghost" onClick={clearAllOrders} id="clear-all-orders" style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}>
               <Trash2 size={18} /> Clear All Orders
             </MotionButton>
-          </>
+          </div>
         }
       />
+
+      {newOrderAlert && (
+        <div className="new-order-toast-banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <BellRing size={22} className="bell-ring-anim" />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+                🔔 New Order Received! (#{newOrderAlert.latestOrderNumber})
+              </div>
+              <div style={{ fontSize: '0.85rem', opacity: 0.95 }}>
+                {newOrderAlert.count} new incoming customer order(s) landed in kitchen queue.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setNewOrderAlert(null)}
+            style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="filter-bar">
         <div className="form-group">
