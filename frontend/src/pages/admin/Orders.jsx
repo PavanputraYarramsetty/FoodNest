@@ -5,6 +5,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
 import MotionButton from '../../components/ui/MotionButton';
+import AnimatedModal from '../../components/ui/AnimatedModal';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -16,6 +17,7 @@ const AdminOrders = () => {
   const [blockFilter, setBlockFilter] = useState('');
   const [orderIdFilter, setOrderIdFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   const prevOrdersRef = useRef([]);
   const isFirstLoadRef = useRef(true);
@@ -100,12 +102,16 @@ const AdminOrders = () => {
     }
   };
 
+  const handleClearClick = () => {
+    setIsClearModalOpen(true);
+  };
+
   const clearAllOrders = async () => {
-    if (!window.confirm('⚠️ Are you sure you want to delete ALL orders? This action is permanent and cannot be undone.')) return;
     try {
       await axios.delete('/admin/orders');
       setOrders([]);
       prevOrdersRef.current = [];
+      setIsClearModalOpen(false);
     } catch (err) {
       console.error('Failed to clear orders:', err);
     }
@@ -174,7 +180,7 @@ const AdminOrders = () => {
             <MotionButton className="btn btn-secondary" onClick={downloadExcel} id="download-excel">
               <Download size={18} /> Download Excel
             </MotionButton>
-            <MotionButton className="btn btn-ghost" onClick={clearAllOrders} id="clear-all-orders" style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}>
+            <MotionButton className="btn btn-ghost" onClick={handleClearClick} id="clear-all-orders" style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}>
               <Trash2 size={18} /> Clear All Orders
             </MotionButton>
           </div>
@@ -238,7 +244,7 @@ const AdminOrders = () => {
       </div>
 
       {sorted.length === 0 ? (
-        <EmptyState icon={Package} title="No orders found" description="Try adjusting your filters." />
+        <EmptyState icon={Package} title="No orders found" description="Try adjusting your filters or wait for new orders to arrive!" scene={() => import('../../components/3d/EmptyOrders3D')} />
       ) : (
         <div className="table-wrapper">
           <table className="table table-responsive-cards">
@@ -353,6 +359,31 @@ const AdminOrders = () => {
           </table>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <AnimatedModal open={isClearModalOpen} onClose={() => setIsClearModalOpen(false)} maxWidth="400px" title="Confirm Delete">
+        <div className="modal-header">
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)', margin: 0 }}>
+            <Trash2 size={24} /> Delete All Orders?
+          </h2>
+          <button className="btn btn-ghost btn-sm" style={{ padding: '0.25rem' }} onClick={() => setIsClearModalOpen(false)}>
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+          <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+            Are you absolutely sure you want to permanently delete <strong>all</strong> orders from the database? This action cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <button className="btn btn-ghost" onClick={() => setIsClearModalOpen(false)} style={{ flex: 1 }}>
+              Cancel
+            </button>
+            <button className="btn btn-danger" onClick={clearAllOrders} style={{ flex: 1 }}>
+              Yes, Delete All
+            </button>
+          </div>
+        </div>
+      </AnimatedModal>
     </div>
   );
 };
