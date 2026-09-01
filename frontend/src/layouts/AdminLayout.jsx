@@ -143,6 +143,7 @@ const AdminLayout = () => {
     { to: '/admin/manage-customers', icon: Users, label: 'Customers' },
     { to: '/admin/announcements', icon: Megaphone, label: 'Announcements' },
     { to: '/admin/feedbacks', icon: MessageSquarePlus, label: 'Feedbacks' },
+    { to: '/admin/settings', icon: Shield, label: 'Settings' },
   ];
 
   const adminBadge = (

@@ -3,6 +3,7 @@ const ExcelJS = require('exceljs');
 const bcrypt = require('bcryptjs');
 const supabase = require('../db');
 const { protect, adminOnly } = require('../middleware/auth');
+const { sendEmail } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -237,7 +238,7 @@ router.put('/orders/:id', async (req, res) => {
       .eq('id', req.params.id)
       .select(`
         *,
-        users!orders_customer_id_fkey (name, phone, hostel_block),
+        users!orders_customer_id_fkey (name, phone, hostel_block, email),
         order_items (*)
       `)
       .single();
@@ -247,6 +248,41 @@ router.put('/orders/:id', async (req, res) => {
     }
 
     const normalized = { ...order, customer: order.users, users: undefined };
+
+    // Fire automated email if status changed to Preparing or Completed
+    if ((status === 'Preparing' || status === 'Completed') && normalized.customer?.email) {
+      // Run email sending asynchronously so we don't block the API response
+      (async () => {
+        try {
+          const { data: settings } = await supabase
+            .from('admin_settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+          if (settings) {
+            const template = status === 'Preparing' 
+              ? settings.preparing_email_template 
+              : settings.completed_email_template;
+
+            if (template) {
+              const personalizedText = template
+                .replace(/\[Name\]/g, normalized.customer.name || 'Customer')
+                .replace(/\[OrderNumber\]/g, normalized.order_number)
+                .replace(/\[TotalAmount\]/g, normalized.total_amount);
+
+              const subject = 'Order Update - AparnaCanteen';
+              const html = `<div style="font-family: Arial, sans-serif; font-size: 16px; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">${personalizedText.replace(/\n/g, '<br>')}</div>`;
+              
+              await sendEmail(normalized.customer.email, subject, html);
+            }
+          }
+        } catch (emailErr) {
+          console.error('Automated email failed:', emailErr);
+        }
+      })();
+    }
+
     res.json({ success: true, data: normalized });
 
   } catch (error) {
@@ -795,6 +831,52 @@ router.delete('/counter-sales', async (req, res, next) => {
     res.json({ success: true, message: 'All counter sales cleared successfully.' });
   } catch (err) {
     next(err);
+  }
+});
+
+// ============== ADMIN SETTINGS ==============
+
+// GET /api/admin/settings
+router.get('/settings', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('admin_settings')
+      .select('*')
+      .eq('id', 1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+
+    res.json({ success: true, data: data || {} });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PUT /api/admin/settings
+router.put('/settings', async (req, res) => {
+  try {
+    const { preparing_email_template, completed_email_template } = req.body;
+    
+    const payload = {};
+    if (preparing_email_template !== undefined) payload.preparing_email_template = preparing_email_template;
+    if (completed_email_template !== undefined) payload.completed_email_template = completed_email_template;
+
+    const { data, error } = await supabase
+      .from('admin_settings')
+      .upsert({ id: 1, ...payload })
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
