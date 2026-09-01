@@ -459,7 +459,7 @@ router.get('/customers', async (req, res) => {
   try {
     const { data: customers, error } = await supabase
       .from('users')
-      .select('id, name, role, phone, email, hostel_block, is_blocked, created_at, updated_at')
+      .select('id, name, role, phone, email, email_verified, hostel_block, is_blocked, created_at, updated_at')
       .eq('role', 'customer')
       .order('created_at', { ascending: false });
 

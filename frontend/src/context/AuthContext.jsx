@@ -55,11 +55,42 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('foodnest_user', JSON.stringify(userData));
   };
 
+  const updateEmail = async (email) => {
+    const res = await axios.put('/auth/update-email', { email });
+    const updatedUser = res.data.user;
+    updateUser(updatedUser);
+    return updatedUser;
+  };
+
+  const resendVerification = async () => {
+    const res = await axios.post('/auth/resend-verification');
+    return res.data;
+  };
+
+  const verifyEmail = async (token) => {
+    const res = await axios.post('/auth/verify-email', { token });
+    return res.data;
+  };
+
+  const forgotPassword = async (email) => {
+    const res = await axios.post('/auth/forgot-password', { email });
+    return res.data;
+  };
+
+  const resetPassword = async (token, newPassword, confirmPassword) => {
+    const res = await axios.post('/auth/reset-password', { token, newPassword, confirmPassword });
+    return res.data;
+  };
+
   const isAuthenticated = !!token && !!user;
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser, isAuthenticated, isAdmin }}>
+    <AuthContext.Provider value={{ 
+      user, token, loading, login, register, logout, updateUser, updateEmail, 
+      resendVerification, verifyEmail, forgotPassword, resetPassword,
+      isAuthenticated, isAdmin 
+    }}>
       {children}
     </AuthContext.Provider>
   );

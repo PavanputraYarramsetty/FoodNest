@@ -13,6 +13,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    email: '',
     hostelBlock: '',
     password: ''
   });
@@ -42,12 +43,18 @@ const Register = () => {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       await register({ ...formData, confirmPassword: formData.password });
-      setSuccess('Registration successful! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
+      setSuccess('Registration successful! Please check your email to verify your account. Redirecting to login...');
+      setTimeout(() => navigate('/login'), 5000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -122,6 +129,20 @@ const Register = () => {
             </div>
 
             <div className="form-group">
+              <label className="form-label" htmlFor="register-email">Email Address *</label>
+              <input
+                type="email"
+                name="email"
+                className="form-input"
+                placeholder="Enter your email address"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                id="register-email"
+              />
+            </div>
+
+            <div className="form-group">
               <label className="form-label" htmlFor="register-block">Hostel Block *</label>
               <select
                 name="hostelBlock"
@@ -178,4 +199,3 @@ const Register = () => {
 };
 
 export default Register;
-

@@ -152,6 +152,7 @@ const ManageCustomers = () => {
               <tr>
                 <th>Name</th>
                 <th>Phone</th>
+                <th>Email</th>
                 <th>Hostel Block</th>
                 <th>Status</th>
                 <th>Joined Date</th>
@@ -163,6 +164,14 @@ const ManageCustomers = () => {
                 <tr key={cust.id}>
                   <td data-label="Name" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cust.name}</td>
                   <td data-label="Phone">{cust.phone}</td>
+                  <td data-label="Email">
+                    {cust.email ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        {cust.email} 
+                        {cust.email_verified ? <CheckCircle size={14} color="var(--success)" title="Verified" /> : <AlertCircle size={14} color="var(--warning)" title="Unverified" />}
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td data-label="Block">{cust.hostel_block || '—'}</td>
                   <td data-label="Status">
                     <span className={`badge ${cust.is_blocked ? 'badge-blocked' : 'badge-active'}`}>

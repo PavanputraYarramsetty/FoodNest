@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Phone, Mail, Lock, AlertCircle, Eye, EyeOff, MessageCircle, X, ExternalLink } from 'lucide-react';
+import { LogIn, Phone, Mail, Lock, AlertCircle, Eye, EyeOff, MessageCircle, X, ExternalLink, LogOut } from 'lucide-react';
 import MotionButton from '../components/ui/MotionButton';
 import AlertBanner from '../components/ui/AlertBanner';
 import AnimatedModal from '../components/ui/AnimatedModal';
@@ -16,7 +16,13 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCommunityPopup, setShowCommunityPopup] = useState(false);
-  const { login } = useAuth();
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showUnverifiedModal, setShowUnverifiedModal] = useState(false);
+  const [emailSentSuccess, setEmailSentSuccess] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const { login, updateEmail, resendVerification, logout } = useAuth();
   const navigate = useNavigate();
   const { transition } = useMotionSafe();
   const cardRef = useRef(null);
@@ -41,15 +47,70 @@ const Login = () => {
       const user = await login(credentials);
 
       if (user.role === 'admin') {
-        navigate('/admin/home');
+        proceedToApp(user);
+      } else if (!user.email) {
+        setShowEmailModal(true);
+      } else if (!user.email_verified) {
+        setShowUnverifiedModal(true);
       } else {
-        setShowCommunityPopup(true);
+        proceedToApp(user);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const proceedToApp = (userObj) => {
+    if (userObj.role === 'admin') {
+      navigate('/admin/home');
+    } else {
+      setShowCommunityPopup(true);
+    }
+  };
+
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    setEmailError('');
+    setEmailLoading(true);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput.trim())) {
+      setEmailError('Please enter a valid email address.');
+      setEmailLoading(false);
+      return;
+    }
+
+    try {
+      await updateEmail(emailInput.trim());
+      setEmailSentSuccess('Verification email sent. Please check your inbox and verify your email.');
+    } catch (err) {
+      setEmailError(err.response?.data?.message || 'Failed to update email. Please try again.');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setEmailError('');
+    setEmailSentSuccess('');
+    setEmailLoading(true);
+    try {
+      await resendVerification();
+      setEmailSentSuccess('Verification email resent successfully! Please check your inbox.');
+    } catch (err) {
+      setEmailError(err.response?.data?.message || 'Failed to resend email.');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleCancelEmail = () => {
+    logout();
+    setShowEmailModal(false);
+    setEmailInput('');
+    setError('Login cancelled. Email is required to continue.');
   };
 
   const handleContinueToApp = () => {
@@ -142,6 +203,9 @@ const Login = () => {
           </form>
 
           <div className="auth-footer">
+            <div style={{ marginBottom: '1rem' }}>
+              <Link to="/forgot-password" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: '500' }}>Forgot Password?</Link>
+            </div>
             <div>
               Don't have an account? <Link to="/register">Sign Up</Link>
             </div>
@@ -169,6 +233,133 @@ const Login = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Mandatory Email Collection Modal */}
+      <AnimatedModal 
+        open={showEmailModal} 
+        onClose={() => {}} 
+        title="Email Required"
+      >
+        <div className="modal-header" style={{ justifyContent: 'center', borderBottom: 'none', paddingBottom: 0 }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, textAlign: 'center', margin: 0, color: 'var(--primary)' }}>
+            ACTION REQUIRED
+          </h2>
+        </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem 2rem 2rem 2rem' }}>
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+            To improve account security and communication, we now require an email address for all accounts. Please provide your email to continue.
+          </p>
+
+          <AlertBanner type="error" show={!!emailError}>
+            <AlertCircle size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+            {emailError}
+          </AlertBanner>
+
+          {emailSentSuccess ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ padding: '1rem', background: 'rgba(20, 255, 100, 0.1)', color: '#14FF64', borderRadius: '8px', textAlign: 'center' }}>
+                {emailSentSuccess}
+              </div>
+              <button className="btn btn-secondary" onClick={handleCancelEmail}>Back to Login</button>
+            </div>
+          ) : (
+            <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" htmlFor="required-email">Email Address</label>
+                <div className="auth-input-wrapper">
+                  <Mail size={18} className="auth-input-icon" />
+                  <input
+                    type="email"
+                    name="requiredEmail"
+                    className="form-input"
+                    placeholder="Enter your email"
+                    value={emailInput}
+                    onChange={(e) => {
+                      setEmailInput(e.target.value);
+                      setEmailError('');
+                    }}
+                    required
+                    id="required-email"
+                  />
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleCancelEmail}
+                  disabled={emailLoading}
+                  style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <LogOut size={18} /> Cancel
+                </button>
+                <MotionButton 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={emailLoading}
+                  style={{ flex: 2 }}
+                >
+                  {emailLoading ? <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} /> : 'Save & Continue'}
+                </MotionButton>
+              </div>
+            </form>
+          )}
+        </div>
+      </AnimatedModal>
+
+      {/* Unverified Email Modal */}
+      <AnimatedModal 
+        open={showUnverifiedModal} 
+        onClose={() => {}} 
+        title="Email Verification Required"
+      >
+        <div className="modal-header" style={{ justifyContent: 'center', borderBottom: 'none', paddingBottom: 0 }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, textAlign: 'center', margin: 0, color: 'var(--primary)' }}>
+            VERIFY EMAIL
+          </h2>
+        </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem 2rem 2rem 2rem' }}>
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+            Your email address has not been verified yet. Please check your inbox and click the verification link to continue.
+          </p>
+
+          <AlertBanner type="error" show={!!emailError}>
+            <AlertCircle size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+            {emailError}
+          </AlertBanner>
+
+          {emailSentSuccess && (
+            <div style={{ padding: '1rem', background: 'rgba(20, 255, 100, 0.1)', color: '#14FF64', borderRadius: '8px', textAlign: 'center' }}>
+              {emailSentSuccess}
+            </div>
+          )}
+          
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                logout();
+                setShowUnverifiedModal(false);
+              }}
+              disabled={emailLoading}
+              style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <LogOut size={18} /> Cancel
+            </button>
+            <MotionButton 
+              type="button" 
+              className="btn btn-primary" 
+              disabled={emailLoading}
+              onClick={handleResendVerification}
+              style={{ flex: 2 }}
+            >
+              {emailLoading ? <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} /> : 'Resend Email'}
+            </MotionButton>
+          </div>
+        </div>
+      </AnimatedModal>
 
       {/* Community Popup Modal */}
       <AnimatedModal open={showCommunityPopup} onClose={handleContinueToApp} title="Join Our Community">
