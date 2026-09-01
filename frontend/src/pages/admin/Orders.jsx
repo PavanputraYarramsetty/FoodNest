@@ -10,7 +10,6 @@ const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [autoSync, setAutoSync] = useState(true);
-  const [newOrderAlert, setNewOrderAlert] = useState(null);
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -20,7 +19,6 @@ const AdminOrders = () => {
 
   const prevOrdersRef = useRef([]);
   const isFirstLoadRef = useRef(true);
-  const audioCtxRef = useRef(null);
 
   const handleWhatsAppNotify = (order) => {
     const rawPhone = order.customer?.phone;
@@ -51,84 +49,7 @@ const AdminOrders = () => {
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Initialize and unlock audio context on any user interaction
-  const getAudioContext = () => {
-    try {
-      if (!audioCtxRef.current) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          audioCtxRef.current = new AudioCtx();
-        }
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {});
-      }
-      return audioCtxRef.current;
-    } catch (e) {
-      return null;
-    }
-  };
 
-  // Pre-unlock audio on user click/touch anywhere on page (resolves browser autoplay policies)
-  useEffect(() => {
-    const unlock = () => {
-      getAudioContext();
-    };
-    window.addEventListener('click', unlock);
-    window.addEventListener('touchstart', unlock);
-    window.addEventListener('keydown', unlock);
-    return () => {
-      window.removeEventListener('click', unlock);
-      window.removeEventListener('touchstart', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-  }, []);
-
-  const playTones = (ctx) => {
-    try {
-      const now = ctx.currentTime;
-      // Tone 1 (587.33 Hz - D5)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(587.33, now);
-      gain1.gain.setValueAtTime(0.35, now);
-      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.4);
-
-      // Tone 2 (880 Hz - A5)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(880, now + 0.18);
-      gain2.gain.setValueAtTime(0.45, now + 0.18);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(now + 0.18);
-      osc2.stop(now + 0.85);
-    } catch (e) {
-      console.warn('Tone play error:', e);
-    }
-  };
-
-  // Web Audio API Synthesizer - Generates a pleasant two-tone chime sound
-  const playOrderChime = () => {
-    try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
-      if (ctx.state === 'suspended') {
-        ctx.resume().then(() => playTones(ctx)).catch(() => playTones(ctx));
-      } else {
-        playTones(ctx);
-      }
-    } catch (e) {
-      console.warn('Audio chime playback warning:', e);
-    }
-  };
 
   useEffect(() => {
     fetchOrders();
@@ -157,14 +78,7 @@ const AdminOrders = () => {
         const newIncoming = fetchedOrders.filter(
           order => !prevOrdersRef.current.some(prev => prev.id === order.id)
         );
-        if (newIncoming.length > 0) {
-          playOrderChime();
-          setNewOrderAlert({
-            count: newIncoming.length,
-            latestOrderNumber: newIncoming[0]?.order_number || newIncoming[0]?.id?.substring(0, 6)
-          });
-          setTimeout(() => setNewOrderAlert(null), 8000);
-        }
+        // We removed the local alert logic here to rely on the global AdminLayout alert
       }
 
       prevOrdersRef.current = fetchedOrders;
@@ -257,14 +171,6 @@ const AdminOrders = () => {
               <span className={`live-pulse-dot ${autoSync ? 'active' : ''}`} />
               Auto-Sync: {autoSync ? 'ON' : 'OFF'}
             </MotionButton>
-            <MotionButton
-              className="btn btn-ghost"
-              onClick={playOrderChime}
-              title="Test Order Chime Sound"
-              style={{ padding: '0.55rem 0.75rem' }}
-            >
-              <Volume2 size={16} />
-            </MotionButton>
             <MotionButton className="btn btn-secondary" onClick={downloadExcel} id="download-excel">
               <Download size={18} /> Download Excel
             </MotionButton>
@@ -274,30 +180,6 @@ const AdminOrders = () => {
           </div>
         }
       />
-
-      {newOrderAlert && (
-        <div className="new-order-toast-banner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <BellRing size={22} className="bell-ring-anim" />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem' }}>
-                🔔 New Order Received! (#{newOrderAlert.latestOrderNumber})
-              </div>
-              <div style={{ fontSize: '0.85rem', opacity: 0.95 }}>
-                {newOrderAlert.count} new incoming customer order(s) landed in kitchen queue.
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => setNewOrderAlert(null)}
-            style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
 
       <div className="filter-bar">
         <div className="form-group">

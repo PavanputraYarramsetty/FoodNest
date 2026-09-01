@@ -181,11 +181,18 @@ const AdminLayout = () => {
           <div
             className="new-order-toast-banner"
             style={{
-              position: 'sticky',
-              top: '1rem',
-              zIndex: 1000,
-              margin: '1rem 1.5rem 0 1.5rem',
-              cursor: 'pointer'
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 9999,
+              cursor: 'pointer',
+              minWidth: '320px',
+              maxWidth: '90vw',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
             }}
             onClick={() => {
               setGlobalAlert(null);
@@ -199,7 +206,7 @@ const AdminLayout = () => {
                   🔔 New Order Received! (#{globalAlert.orderNumber})
                 </div>
                 <div style={{ fontSize: '0.85rem', opacity: 0.95 }}>
-                  {globalAlert.count} new customer order(s) arrived. Click to view order details.
+                  {globalAlert.count} new customer order(s) arrived. Click to view.
                 </div>
               </div>
             </div>
@@ -209,11 +216,11 @@ const AdminLayout = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 setGlobalAlert(null);
-                navigate('/admin/orders');
               }}
-              style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              style={{ color: '#fff', border: 'none', background: 'transparent', padding: '0.25rem' }}
+              aria-label="Close notification"
             >
-              View <ChevronRight size={16} />
+              <X size={20} />
             </button>
           </div>
         )}
