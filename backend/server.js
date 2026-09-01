@@ -61,13 +61,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-const { initBaileys } = require('./services/baileysService');
-
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 FoodNest server running on port ${PORT} (Supabase)`);
-  // Initialize Baileys WhatsApp Socket Service
-  initBaileys();
 });
 
 // Prevent intermittent 502/timeout issues on Render
