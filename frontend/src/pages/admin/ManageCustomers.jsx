@@ -318,13 +318,8 @@ const ManageCustomers = () => {
                   required
                 >
                   <option value="">Select Block</option>
-                  <option value="A Block">A Block</option>
-                  <option value="B Block">B Block</option>
-                  <option value="C Block">C Block</option>
-                  <option value="D Block">D Block</option>
                   <option value="F Block (Old)">F Block (Old)</option>
-                  <option value="PG">PG</option>
-                  <option value="Other">Other</option>
+                  <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
                 </select>
               </div>
               
