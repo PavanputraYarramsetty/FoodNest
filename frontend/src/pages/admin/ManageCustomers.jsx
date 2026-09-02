@@ -233,7 +233,7 @@ const ManageCustomers = () => {
                       <MotionButton
                         className="btn btn-secondary btn-sm"
                         onClick={() => resetPassword(cust)}
-                        style={{ color: 'var(--primary-500)', borderColor: 'rgba(249, 115, 22, 0.2)' }}
+                        style={{ color: '#f97316', borderColor: 'rgba(249, 115, 22, 0.2)' }}
                         title="Reset Password"
                         aria-label={`Reset password for ${cust.name}`}
                       >
