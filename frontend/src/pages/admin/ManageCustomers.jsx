@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ShieldAlert, Trash2, CheckCircle, AlertCircle, Users, Search, KeyRound } from 'lucide-react';
+import { ShieldAlert, Trash2, CheckCircle, AlertCircle, Users, Search, KeyRound, Edit, X } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AlertBanner from '../../components/ui/AlertBanner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -13,6 +13,9 @@ const ManageCustomers = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [blockFilter, setBlockFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editFormData, setEditFormData] = useState({ name: '', phone: '', email: '', hostel_block: '' });
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -67,6 +70,32 @@ const ManageCustomers = () => {
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to reset password' });
+    }
+  };
+
+  const handleEditClick = (customer) => {
+    setEditingCustomer(customer);
+    setEditFormData({
+      name: customer.name || '',
+      phone: customer.phone || '',
+      email: customer.email || '',
+      hostel_block: customer.hostel_block || ''
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      await axios.put(`/admin/customers/${editingCustomer.id}`, editFormData);
+      setMessage({ type: 'success', text: 'Customer details updated successfully!' });
+      setEditingCustomer(null);
+      fetchCustomers();
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update customer' });
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -182,7 +211,16 @@ const ManageCustomers = () => {
                     {new Date(cust.created_at).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                   </td>
                   <td data-label="Actions">
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <MotionButton
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleEditClick(cust)}
+                        style={{ color: 'var(--primary)', borderColor: 'rgba(59, 130, 246, 0.2)' }}
+                        title="Edit Customer"
+                        aria-label={`Edit ${cust.name}`}
+                      >
+                        <Edit size={14} /> Edit
+                      </MotionButton>
                       <MotionButton
                         className="btn btn-secondary btn-sm"
                         onClick={() => toggleBlockStatus(cust)}
@@ -216,6 +254,98 @@ const ManageCustomers = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Edit Customer Modal */}
+      {editingCustomer && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="modal-content" style={{
+            background: 'var(--bg-surface)', padding: '2rem', borderRadius: '1rem',
+            width: '90%', maxWidth: '500px', position: 'relative',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid var(--border-light)'
+          }}>
+            <button 
+              onClick={() => setEditingCustomer(null)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            >
+              <X size={20} />
+            </button>
+            <h3 style={{ marginBottom: '1.5rem', color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 600 }}>Edit Customer</h3>
+            
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Name</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Phone</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Hostel Block</label>
+                <select 
+                  className="form-input"
+                  value={editFormData.hostel_block}
+                  onChange={(e) => setEditFormData({...editFormData, hostel_block: e.target.value})}
+                  required
+                >
+                  <option value="">Select Block</option>
+                  <option value="A Block">A Block</option>
+                  <option value="B Block">B Block</option>
+                  <option value="C Block">C Block</option>
+                  <option value="D Block">D Block</option>
+                  <option value="F Block (Old)">F Block (Old)</option>
+                  <option value="PG">PG</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                <MotionButton
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setEditingCustomer(null)}
+                >
+                  Cancel
+                </MotionButton>
+                <MotionButton
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={editLoading}
+                >
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </MotionButton>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

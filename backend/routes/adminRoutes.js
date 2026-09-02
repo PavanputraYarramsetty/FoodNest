@@ -510,6 +510,44 @@ router.get('/customers', async (req, res) => {
   }
 });
 
+// PUT /api/admin/customers/:id — Update customer details
+router.put('/customers/:id', async (req, res) => {
+  try {
+    const { name, phone, email, hostel_block } = req.body;
+    
+    // Fetch user to ensure they exist and are a customer
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchError || !user) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ success: false, message: 'Cannot edit admin accounts here' });
+    }
+
+    const { data: updatedCustomer, error: updateError } = await supabase
+      .from('users')
+      .update({ name, phone, email, hostel_block })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ success: false, message: updateError.message });
+    }
+
+    res.json({ success: true, message: 'Customer updated successfully', data: updatedCustomer });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // DELETE /api/admin/customers/:id — Delete a customer
 router.delete('/customers/:id', async (req, res) => {
   try {
