@@ -214,13 +214,13 @@ const Login = () => {
                 If any Password related queries contact to this number
               </p>
               <div className="auth-contact-actions">
-                <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.925rem' }}>9989092333</span>
+                <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.925rem' }}>9491008797</span>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <a href="tel:9989092333" className="btn btn-secondary btn-sm">
+                  <a href="tel:9491008797" className="btn btn-secondary btn-sm">
                     <Phone size={14} /> Call
                   </a>
                   <a
-                    href="https://wa.me/919989092333"
+                    href="https://wa.me/919491008797"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-secondary btn-sm btn-whatsapp"
