@@ -49,8 +49,10 @@ const Login = () => {
       if (user.role === 'admin') {
         proceedToApp(user);
       } else if (!user.email) {
+        setEmailInput('');
         setShowEmailModal(true);
       } else if (!user.email_verified) {
+        setEmailInput(user.email || '');
         setShowUnverifiedModal(true);
       } else {
         proceedToApp(user);
@@ -84,7 +86,7 @@ const Login = () => {
 
     try {
       await updateEmail(emailInput.trim());
-      setEmailSentSuccess('Verification email sent. Please check your inbox and verify your email.');
+      setEmailSentSuccess(`Verification email sent to ${emailInput.trim()}. Please check your inbox and verify your email.`);
     } catch (err) {
       setEmailError(err.response?.data?.message || 'Failed to update email. Please try again.');
     } finally {
@@ -92,13 +94,22 @@ const Login = () => {
     }
   };
 
-  const handleResendVerification = async () => {
+  const handleResendVerification = async (e) => {
+    if (e) e.preventDefault();
     setEmailError('');
     setEmailSentSuccess('');
     setEmailLoading(true);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput.trim())) {
+      setEmailError('Please enter a valid email address.');
+      setEmailLoading(false);
+      return;
+    }
+
     try {
-      await resendVerification();
-      setEmailSentSuccess('Verification email resent successfully! Please check your inbox.');
+      const res = await resendVerification(emailInput.trim());
+      setEmailSentSuccess(res.message || `Verification email sent to ${emailInput.trim()}! Please check your inbox.`);
     } catch (err) {
       setEmailError(err.response?.data?.message || 'Failed to resend email.');
     } finally {
@@ -319,9 +330,9 @@ const Login = () => {
             VERIFY EMAIL
           </h2>
         </div>
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem 2rem 2rem 2rem' }}>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1.5rem 2rem 2rem 2rem' }}>
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-            Your email address has not been verified yet. Please check your inbox and click the verification link to continue.
+            Your email address has not been verified yet. Check your inbox or enter/update your email address below to receive a verification link.
           </p>
 
           <AlertBanner type="error" show={!!emailError}>
@@ -335,29 +346,50 @@ const Login = () => {
             </div>
           )}
           
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                logout();
-                setShowUnverifiedModal(false);
-              }}
-              disabled={emailLoading}
-              style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <LogOut size={18} /> Cancel
-            </button>
-            <MotionButton 
-              type="button" 
-              className="btn btn-primary" 
-              disabled={emailLoading}
-              onClick={handleResendVerification}
-              style={{ flex: 2 }}
-            >
-              {emailLoading ? <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} /> : 'Resend Email'}
-            </MotionButton>
-          </div>
+          <form onSubmit={handleResendVerification} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" htmlFor="unverified-email">Email Address to Verify</label>
+              <div className="auth-input-wrapper">
+                <Mail size={18} className="auth-input-icon" />
+                <input
+                  type="email"
+                  id="unverified-email"
+                  className="form-input"
+                  placeholder="Enter your email"
+                  value={emailInput}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value);
+                    setEmailError('');
+                    setEmailSentSuccess('');
+                  }}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  logout();
+                  setShowUnverifiedModal(false);
+                }}
+                disabled={emailLoading}
+                style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <LogOut size={18} /> Cancel
+              </button>
+              <MotionButton 
+                type="submit" 
+                className="btn btn-primary" 
+                disabled={emailLoading}
+                style={{ flex: 2 }}
+              >
+                {emailLoading ? <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} /> : 'Send Verification Email'}
+              </MotionButton>
+            </div>
+          </form>
         </div>
       </AnimatedModal>
 

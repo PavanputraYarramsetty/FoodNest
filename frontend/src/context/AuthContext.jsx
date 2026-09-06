@@ -62,13 +62,21 @@ export const AuthProvider = ({ children }) => {
     return updatedUser;
   };
 
-  const resendVerification = async () => {
-    const res = await axios.post('/auth/resend-verification');
+  const resendVerification = async (email) => {
+    const res = await axios.post('/auth/resend-verification', { email });
+    if (res.data?.user) {
+      updateUser(res.data.user);
+    }
     return res.data;
   };
 
   const verifyEmail = async (token) => {
     const res = await axios.post('/auth/verify-email', { token });
+    if (res.data?.user) {
+      updateUser(res.data.user);
+    } else if (user) {
+      updateUser({ ...user, email_verified: true });
+    }
     return res.data;
   };
 

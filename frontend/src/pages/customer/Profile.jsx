@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { User, Phone, Building, CheckCircle, AlertCircle, Lock, Eye, EyeOff, Save } from 'lucide-react';
+import { User, Phone, Building, CheckCircle, AlertCircle, Lock, Eye, EyeOff, Save, Mail } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AnimatedTabs from '../../components/ui/AnimatedTabs';
 import AlertBanner from '../../components/ui/AlertBanner';
@@ -162,6 +162,26 @@ const Profile = () => {
                 <div>
                   <div className="detail-row-label">Name</div>
                   <div className="detail-row-value">{user?.name || '—'}</div>
+                </div>
+              </div>
+              <div className="detail-row">
+                <Mail size={20} className="detail-row-icon" />
+                <div>
+                  <div className="detail-row-label">Email</div>
+                  <div className="detail-row-value" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {user?.email || '—'}
+                    {user?.email ? (
+                      user.email_verified ? (
+                        <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '12px', background: 'rgba(20, 255, 100, 0.15)', color: '#14FF64', fontWeight: 600 }}>
+                          Verified
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '12px', background: 'rgba(255, 170, 0, 0.15)', color: '#FFAA00', fontWeight: 600 }}>
+                          Unverified
+                        </span>
+                      )
+                    ) : null}
+                  </div>
                 </div>
               </div>
               <div className="detail-row">

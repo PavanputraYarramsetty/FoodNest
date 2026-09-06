@@ -408,20 +408,34 @@ router.post('/verify-email', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Verification token has expired. Please request a new one.' });
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedUser, error: updateError } = await supabase
       .from('users')
       .update({ 
         email_verified: true, 
         verification_token: null, 
         verification_expires: null 
       })
-      .eq('id', user.id);
+      .eq('id', user.id)
+      .select('id, name, role, phone, email, email_verified, hostel_block')
+      .single();
 
     if (updateError) {
       return res.status(500).json({ success: false, message: updateError.message });
     }
 
-    res.json({ success: true, message: 'Email verified successfully!' });
+    res.json({ 
+      success: true, 
+      message: 'Email verified successfully!',
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        phone: updatedUser.phone,
+        email: updatedUser.email,
+        email_verified: updatedUser.email_verified,
+        hostelBlock: updatedUser.hostel_block
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -430,9 +444,11 @@ router.post('/verify-email', async (req, res) => {
 // POST /api/auth/resend-verification
 router.post('/resend-verification', protect, async (req, res) => {
   try {
-    const { data: user, error } = await supabase
+    const { email } = req.body;
+
+    const { data: currentUser, error } = await supabase
       .from('users')
-      .select('email, email_verified')
+      .select('id, email, email_verified')
       .eq('id', req.user.id)
       .single();
 
@@ -440,36 +456,76 @@ router.post('/resend-verification', protect, async (req, res) => {
       console.error('Database error:', error);
       return res.status(500).json({ success: false, message: `Database error: ${error.message}` });
     }
-    if (!user) {
+    if (!currentUser) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (!user.email) {
-      return res.status(400).json({ success: false, message: 'No email address registered' });
+    let targetEmail = currentUser.email;
+
+    if (email && email.trim()) {
+      const trimmedEmail = email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid email address' });
+      }
+
+      // Check if email belongs to another user
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', trimmedEmail)
+        .neq('id', req.user.id)
+        .maybeSingle();
+
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'Email already registered by another account' });
+      }
+
+      targetEmail = trimmedEmail;
     }
 
-    if (user.email_verified) {
+    if (!targetEmail) {
+      return res.status(400).json({ success: false, message: 'No email address provided' });
+    }
+
+    if (currentUser.email_verified && targetEmail === currentUser.email) {
       return res.status(400).json({ success: false, message: 'Email is already verified' });
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const { error: updateError } = await supabase
+    const { data: updatedUser, error: updateError } = await supabase
       .from('users')
       .update({ 
+        email: targetEmail,
+        email_verified: false,
         verification_token: verificationToken,
         verification_expires: verificationExpires.toISOString()
       })
-      .eq('id', req.user.id);
+      .eq('id', req.user.id)
+      .select('id, name, role, phone, email, email_verified, hostel_block')
+      .single();
 
     if (updateError) {
       return res.status(500).json({ success: false, message: updateError.message });
     }
 
     try {
-      await emailService.sendVerificationEmail(user.email, verificationToken);
-      res.json({ success: true, message: 'Verification email resent successfully' });
+      await emailService.sendVerificationEmail(targetEmail, verificationToken);
+      res.json({ 
+        success: true, 
+        message: `Verification email sent successfully to ${targetEmail}`,
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          role: updatedUser.role,
+          phone: updatedUser.phone,
+          email: updatedUser.email,
+          email_verified: updatedUser.email_verified,
+          hostelBlock: updatedUser.hostel_block
+        }
+      });
     } catch (emailErr) {
       console.error('Failed to resend verification email', emailErr);
       res.status(500).json({ success: false, message: 'Failed to send email. Please try again later.' });
