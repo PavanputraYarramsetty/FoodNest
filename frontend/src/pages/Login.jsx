@@ -141,7 +141,7 @@ const Login = () => {
             >
               <img src="/favicon.jpg" alt="Logo" className="sidebar-logo-img" />
             </motion.div>
-            <h1 className="auth-title">AparnaCanteen</h1>
+            <h1 className="auth-title">Aparna Devi Canteen</h1>
             <p className="auth-subtitle">Welcome back</p>
           </div>
 
