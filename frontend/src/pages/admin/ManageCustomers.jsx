@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ShieldAlert, Trash2, CheckCircle, AlertCircle, Users, Search, KeyRound, Edit, X } from 'lucide-react';
+import { ShieldAlert, Trash2, CheckCircle, AlertCircle, Users, Search, KeyRound, Edit, X, PlusCircle } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AlertBanner from '../../components/ui/AlertBanner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -8,6 +9,7 @@ import LoadingState from '../../components/ui/LoadingState';
 import MotionButton from '../../components/ui/MotionButton';
 
 const ManageCustomers = () => {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -249,6 +251,15 @@ const ManageCustomers = () => {
                   </td>
                   <td data-label="Actions" style={{ textAlign: 'right' }}>
                     <div className="customer-actions-group">
+                      <MotionButton
+                        className="customer-action-btn edit"
+                        onClick={() => navigate(`/admin/create-order?customerId=${cust.id}`)}
+                        title="Create Order for this Customer"
+                        aria-label={`Create Order for ${cust.name}`}
+                        style={{ color: 'var(--primary-400)' }}
+                      >
+                        <PlusCircle size={15} />
+                      </MotionButton>
                       <MotionButton
                         className="customer-action-btn edit"
                         onClick={() => handleEditClick(cust)}

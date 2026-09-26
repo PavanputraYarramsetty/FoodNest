@@ -17,7 +17,8 @@ import {
   Menu, 
   X, 
   Shield, 
-  BellRing 
+  BellRing,
+  PlusCircle
 } from 'lucide-react';
 import AppSidebar from '../components/layout/AppSidebar';
 import PageTransition from '../components/ui/PageTransition';
@@ -154,6 +155,7 @@ const AdminLayout = () => {
 
   const navLinks = [
     { to: '/admin/home', icon: Gauge, label: 'Dashboard' },
+    { to: '/admin/create-order', icon: PlusCircle, label: 'Create Order' },
     { to: '/admin/counter-sale', icon: Scan, label: 'Counter Sale' },
     { to: '/admin/manage-menu', icon: BookOpen, label: 'Manage Menu' },
     { to: '/admin/orders', icon: ClipboardList, label: 'Orders', badge: pendingCount },

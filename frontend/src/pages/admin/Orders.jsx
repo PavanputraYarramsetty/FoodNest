@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, MessageCircle, FileText } from 'lucide-react';
+import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, MessageCircle, FileText, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
 import MotionButton from '../../components/ui/MotionButton';
 import AnimatedModal from '../../components/ui/AnimatedModal';
+
 const AdminOrders = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +212,14 @@ const AdminOrders = () => {
         backTo="/admin/home"
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <MotionButton
+              className="btn btn-primary"
+              onClick={() => navigate('/admin/create-order')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              id="create-order-btn"
+            >
+              <Plus size={18} /> Create Order
+            </MotionButton>
             <MotionButton
               className={`btn ${autoSync ? 'btn-success' : 'btn-ghost'}`}
               onClick={() => setAutoSync(!autoSync)}

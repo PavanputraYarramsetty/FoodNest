@@ -167,6 +167,240 @@ router.delete('/menu/:id', async (req, res) => {
 
 // ============== ORDER MANAGEMENT ==============
 
+// GET /api/admin/orders/next-number — Get current highest order number and next suggested number
+router.get('/orders/next-number', async (req, res) => {
+  try {
+    const { data: counter } = await supabase
+      .from('order_counters')
+      .select('last_value')
+      .eq('id', 'order_number')
+      .maybeSingle();
+
+    let currentLastNumber = 0;
+    if (counter && counter.last_value !== undefined && counter.last_value !== null) {
+      currentLastNumber = Number(counter.last_value);
+    } else {
+      const { data: maxOrder } = await supabase
+        .from('orders')
+        .select('order_number')
+        .order('order_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (maxOrder && maxOrder.order_number) {
+        currentLastNumber = Number(maxOrder.order_number);
+      }
+    }
+
+    res.json({
+      success: true,
+      currentLastNumber,
+      nextOrderNumber: currentLastNumber + 1
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /api/admin/orders/create — Create an order for a customer by Admin
+router.post('/orders/create', async (req, res) => {
+  try {
+    const { customer_id, customer_details, order_number, items, payment_method, status } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'No items in order' });
+    }
+
+    let finalCustomerId = customer_id;
+
+    // If customer_id not provided, look up or create customer using customer_details
+    if (!finalCustomerId && customer_details) {
+      const { name, phone, email, hostel_block } = customer_details;
+      if (!name || !phone) {
+        return res.status(400).json({ success: false, message: 'Customer name and phone number are required' });
+      }
+
+      const trimmedPhone = phone.trim();
+      const tenDigit = trimmedPhone.slice(-10);
+      const possiblePhones = [tenDigit, `91${tenDigit}`, `+91${tenDigit}`];
+
+      // Check if customer exists by phone
+      let { data: existingUser } = await supabase
+        .from('users')
+        .select('id, name, hostel_block')
+        .in('phone', possiblePhones)
+        .maybeSingle();
+
+      if (!existingUser && email && email.trim()) {
+        const { data: existingByEmail } = await supabase
+          .from('users')
+          .select('id, name, hostel_block')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+        existingUser = existingByEmail;
+      }
+
+      if (existingUser) {
+        finalCustomerId = existingUser.id;
+      } else {
+        // Create a new customer user record
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('Customer@123', salt);
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            name: name.trim(),
+            phone: trimmedPhone,
+            email: email && email.trim() ? email.trim().toLowerCase() : null,
+            password: hashedPassword,
+            hostel_block: hostel_block || 'F Block (Old)',
+            role: 'customer'
+          })
+          .select()
+          .single();
+
+        if (userError) {
+          return res.status(500).json({ success: false, message: 'Failed to create customer: ' + userError.message });
+        }
+        finalCustomerId = newUser.id;
+      }
+    }
+
+    if (!finalCustomerId) {
+      return res.status(400).json({ success: false, message: 'Customer selection or details are required' });
+    }
+
+    // Validate items and compute total amount
+    let totalAmount = 0;
+    const orderItems = [];
+
+    const itemIds = items.map(i => i.menuItem);
+    const { data: menuItems, error: menuError } = await supabase
+      .from('menu_items')
+      .select('*')
+      .in('id', itemIds);
+
+    if (menuError) {
+      return res.status(500).json({ success: false, message: 'Failed to validate menu items' });
+    }
+
+    const menuMap = new Map((menuItems || []).map(m => [m.id, m]));
+
+    for (const item of items) {
+      const menuItem = menuMap.get(item.menuItem);
+      if (!menuItem) {
+        return res.status(404).json({ success: false, message: `Menu item not found: ${item.menuItem}` });
+      }
+      const quantity = parseInt(item.quantity) || 1;
+      const itemTotal = Number(menuItem.price) * quantity;
+      totalAmount += itemTotal;
+
+      orderItems.push({
+        menu_item_id: menuItem.id,
+        item_name: menuItem.item_name,
+        quantity,
+        price: menuItem.price
+      });
+    }
+
+    // Determine target order number
+    let targetOrderNumber = parseInt(order_number);
+    if (!targetOrderNumber || isNaN(targetOrderNumber) || targetOrderNumber <= 0) {
+      const { data: nextNum, error: rpcErr } = await supabase.rpc('get_next_order_number');
+      if (rpcErr) {
+        return res.status(500).json({ success: false, message: 'Failed to generate order number' });
+      }
+      targetOrderNumber = nextNum;
+    }
+
+    // Check if order_number already exists in orders table
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('id, order_number')
+      .eq('order_number', targetOrderNumber)
+      .maybeSingle();
+
+    if (existingOrder) {
+      const { data: counter } = await supabase
+        .from('order_counters')
+        .select('last_value')
+        .eq('id', 'order_number')
+        .maybeSingle();
+      const currentLast = counter ? Number(counter.last_value || 0) : 0;
+      const suggestedNext = currentLast + 1;
+
+      return res.status(400).json({
+        success: false,
+        message: `Order ID #${targetOrderNumber} already exists! Please use a unique Order ID (e.g., #${suggestedNext}).`
+      });
+    }
+
+    // Insert order
+    const { data: newOrder, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        customer_id: finalCustomerId,
+        total_amount: totalAmount,
+        status: status || 'Pending',
+        order_number: targetOrderNumber,
+        payment_method: payment_method || 'COD'
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      return res.status(500).json({ success: false, message: 'Failed to create order: ' + orderError.message });
+    }
+
+    // Insert order items
+    const itemsToInsert = orderItems.map(i => ({ ...i, order_id: newOrder.id }));
+    const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
+    if (itemsError) {
+      return res.status(500).json({ success: false, message: 'Failed to insert order items: ' + itemsError.message });
+    }
+
+    // Update order_counters to ensure subsequent auto-increments continue from targetOrderNumber
+    const { data: counter } = await supabase
+      .from('order_counters')
+      .select('last_value')
+      .eq('id', 'order_number')
+      .maybeSingle();
+
+    const currentLast = counter ? Number(counter.last_value || 0) : 0;
+    const updatedLast = Math.max(currentLast, targetOrderNumber);
+
+    await supabase
+      .from('order_counters')
+      .upsert({ id: 'order_number', last_value: updatedLast });
+
+    // Fetch complete inserted order
+    const { data: fullOrder } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        users!orders_customer_id_fkey (name, phone, hostel_block, email),
+        order_items (*)
+      `)
+      .eq('id', newOrder.id)
+      .single();
+
+    const responseData = {
+      ...fullOrder,
+      customer: fullOrder.users,
+      users: undefined
+    };
+
+    res.status(201).json({
+      success: true,
+      message: `Order #${targetOrderNumber} created successfully!`,
+      data: responseData
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // GET /api/admin/orders — Get all orders with optional filters
 // NOTE: This route must come BEFORE /orders/export to avoid route conflict
 router.get('/orders', async (req, res) => {

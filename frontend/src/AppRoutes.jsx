@@ -36,6 +36,7 @@ const AdminAnnouncements = lazy(() => import('./pages/admin/Announcements'));
 const CounterSale = lazy(() => import('./pages/admin/CounterSale'));
 const AdminFeedbacks = lazy(() => import('./pages/admin/Feedbacks'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
+const CreateOrder = lazy(() => import('./pages/admin/CreateOrder'));
 
 export default function AppRoutes() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -92,6 +93,7 @@ export default function AppRoutes() {
         }
       >
         <Route path="home" element={<AdminHome />} />
+        <Route path="create-order" element={<CreateOrder />} />
         <Route path="manage-menu" element={<ManageMenu />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="revenue" element={<Revenue />} />
