@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { Scan, X, Camera, Upload, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Scan, X, Camera, Upload, CheckCircle2, AlertCircle, RefreshCw, ShieldAlert, Check } from 'lucide-react';
 import AnimatedModal from './AnimatedModal';
 import MotionButton from './MotionButton';
 import toast from 'react-hot-toast';
@@ -8,13 +8,15 @@ import toast from 'react-hot-toast';
 const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
   const [activeTab, setActiveTab] = useState('camera'); // 'camera' | 'file'
   const [cameraError, setCameraError] = useState('');
+  const [cameras, setCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (open && activeTab === 'camera') {
-      startCamera();
+      initAndStartCamera();
     } else {
       stopCamera();
     }
@@ -24,39 +26,28 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
     };
   }, [open, activeTab]);
 
-  const startCamera = async () => {
+  const requestCameraPermissionDirectly = async () => {
     setCameraError('');
-    setIsScanning(true);
-
     try {
-      // Ensure any existing instance is stopped first
-      if (html5QrCodeRef.current) {
-        try {
-          await html5QrCodeRef.current.stop();
-        } catch {
-          // ignore
-        }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError('Camera API is not supported by your browser or environment. Please use the Upload QR Image tab.');
+        return;
       }
-
-      const scannerId = 'admin-qr-reader-box';
-      const html5QrCode = new Html5Qrcode(scannerId);
-      html5QrCodeRef.current = html5QrCode;
-
-      const config = { fps: 10, qrbox: { width: 230, height: 230 } };
-
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        config,
-        (decodedText) => {
-          handleSuccess(decodedText);
-        },
-        () => {
-          // Ignore frame decode errors
-        }
-      );
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Stop temporary stream track so html5-qrcode can take over
+      stream.getTracks().forEach(track => track.stop());
+      toast.success('Camera permission granted!');
+      initAndStartCamera();
     } catch (err) {
-      console.error('Camera access error:', err);
-      setCameraError(err.message || 'Camera permission denied or camera not found. You can upload a QR image instead.');
+      console.error('Direct camera request error:', err);
+      const errStr = String(err);
+      let msg = 'Camera access was not granted or no webcam device was found.';
+      if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
+        msg = 'Camera permission was blocked. Click the 🔒 (Lock) icon next to localhost:5173 in Chrome address bar and select "Allow" for Camera.';
+      } else if (errStr.includes('NotFoundError') || errStr.includes('Requested device not found')) {
+        msg = 'No webcam or camera device was detected on your computer. You can use the "Upload QR Image" tab below to scan QR codes instantly.';
+      }
+      setCameraError(msg);
       setIsScanning(false);
     }
   };
@@ -75,6 +66,79 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
         setIsScanning(false);
       }
     }
+  };
+
+  const initAndStartCamera = async (overrideCamId = null) => {
+    setCameraError('');
+    setIsScanning(true);
+
+    try {
+      await stopCamera();
+
+      const scannerId = 'admin-qr-reader-box';
+      const html5QrCode = new Html5Qrcode(scannerId);
+      html5QrCodeRef.current = html5QrCode;
+
+      const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+      // 1. Discover available cameras
+      let devices = cameras;
+      if (devices.length === 0) {
+        try {
+          devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            setCameras(devices);
+          }
+        } catch (e) {
+          console.warn('Could not list cameras:', e);
+        }
+      }
+
+      const camToUse = overrideCamId || selectedCameraId || (devices.length > 0 ? devices[0].id : null);
+
+      if (camToUse) {
+        await html5QrCode.start(
+          camToUse,
+          config,
+          (decodedText) => handleSuccess(decodedText),
+          () => {}
+        );
+      } else {
+        // Fallback constraint attempts
+        try {
+          await html5QrCode.start(
+            { facingMode: 'user' },
+            config,
+            (decodedText) => handleSuccess(decodedText),
+            () => {}
+          );
+        } catch (errUser) {
+          await html5QrCode.start(
+            { facingMode: 'environment' },
+            config,
+            (decodedText) => handleSuccess(decodedText),
+            () => {}
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Camera initialization error:', err);
+      let errMsg = 'Camera permission denied or no camera device found on this system.';
+      const errStr = String(err);
+      if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
+        errMsg = 'Camera permission was blocked by your browser. Please click the 🔒 (Lock) icon in your browser address bar to allow Camera access.';
+      } else if (errStr.includes('NotFoundError') || errStr.includes('Requested device not found')) {
+        errMsg = 'No webcam or camera device was detected on your computer.';
+      }
+      setCameraError(errMsg);
+      setIsScanning(false);
+    }
+  };
+
+  const handleCameraChange = (e) => {
+    const newId = e.target.value;
+    setSelectedCameraId(newId);
+    initAndStartCamera(newId);
   };
 
   const playBeep = () => {
@@ -114,7 +178,7 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
       handleSuccess(decodedText);
     } catch (err) {
       console.error('Failed to scan file QR:', err);
-      toast.error('No valid QR code found in this image. Please try another image.');
+      toast.error('No valid QR code found in this image. Please select a clearer QR image.');
     }
   };
 
@@ -124,13 +188,13 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
   };
 
   return (
-    <AnimatedModal open={open} onClose={handleModalClose} maxWidth="460px" title="Scan Order QR Code">
+    <AnimatedModal open={open} onClose={handleModalClose} maxWidth="480px" title="Scan Order QR Code">
       <div style={{ padding: '1.25rem', textAlign: 'center' }}>
         
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--primary-400)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Scan size={22} /> Admin QR Order Scanner
+            <Scan size={22} /> Order QR Code Scanner
           </div>
           <button 
             type="button" 
@@ -158,9 +222,30 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
             className={`btn btn-sm ${activeTab === 'file' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ flex: 1, borderRadius: '6px', fontSize: '0.82rem', gap: '0.4rem' }}
           >
-            <Upload size={14} /> Upload QR Image
+            <Upload size={14} /> Upload QR Image / Bill
           </button>
         </div>
+
+        {/* Camera Selector (if multiple cameras exist) */}
+        {activeTab === 'camera' && cameras.length > 1 && !cameraError && (
+          <div style={{ marginBottom: '0.75rem', textAlign: 'left' }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+              Select Camera Device:
+            </label>
+            <select
+              className="form-input"
+              value={selectedCameraId}
+              onChange={handleCameraChange}
+              style={{ fontSize: '0.82rem', padding: '0.35rem 0.5rem' }}
+            >
+              {cameras.map((cam, idx) => (
+                <option key={cam.id} value={cam.id}>
+                  {cam.label || `Camera ${idx + 1}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Camera View Area */}
         {activeTab === 'camera' ? (
@@ -168,25 +253,50 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
             {cameraError ? (
               <div 
                 style={{
-                  padding: '1.5rem',
+                  padding: '1.25rem',
                   borderRadius: '12px',
-                  background: 'rgba(239, 68, 68, 0.1)',
+                  background: 'rgba(239, 68, 68, 0.08)',
                   border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: 'var(--danger)',
+                  color: 'var(--text-primary)',
                   marginBottom: '1rem',
-                  fontSize: '0.85rem'
+                  textAlign: 'left'
                 }}
               >
-                <AlertCircle size={24} style={{ marginBottom: '0.5rem' }} />
-                <div>{cameraError}</div>
-                <button
-                  type="button"
-                  onClick={startCamera}
-                  className="btn btn-secondary btn-sm"
-                  style={{ marginTop: '0.75rem', gap: '0.3rem' }}
-                >
-                  <RefreshCw size={12} /> Retry Camera
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)', fontWeight: 700, marginBottom: '0.5rem' }}>
+                  <AlertCircle size={20} /> Camera Access Blocked or Not Found
+                </div>
+                
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 0.85rem 0', lineHeight: '1.4' }}>
+                  {cameraError}
+                </p>
+
+                <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.78rem', marginBottom: '0.85rem', borderLeft: '3px solid var(--primary-500)' }}>
+                  <strong>💡 How to Enable Camera in Browser:</strong>
+                  <ol style={{ margin: '0.35rem 0 0 1.25rem', padding: 0, lineHeight: '1.5' }}>
+                    <li>Click the 🔒 (Lock) or Site Settings icon on your browser address bar (top left).</li>
+                    <li>Toggle <strong>Camera</strong> permission to <strong>Allow</strong>.</li>
+                    <li>Click <strong>Retry Camera</strong> below!</li>
+                  </ol>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => requestCameraPermissionDirectly()}
+                    className="btn btn-primary btn-sm"
+                    style={{ flex: 1, gap: '0.3rem' }}
+                  >
+                    <Camera size={13} /> Allow Camera Access
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('file')}
+                    className="btn btn-secondary btn-sm"
+                    style={{ flex: 1, gap: '0.3rem' }}
+                  >
+                    <Upload size={13} /> Upload QR Image Instead
+                  </button>
+                </div>
               </div>
             ) : (
               <div 
@@ -204,29 +314,30 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
               </div>
             )}
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
-              Center the order QR code inside the camera box to scan automatically.
+              Hold the order QR code or printed bill token up to the camera to scan automatically.
             </p>
           </div>
         ) : (
           /* File Upload Area */
           <div 
             style={{
-              padding: '2rem 1.5rem',
+              padding: '2.25rem 1.5rem',
               border: '2px dashed rgba(249, 115, 22, 0.4)',
               borderRadius: '12px',
               background: 'rgba(249, 115, 22, 0.04)',
               cursor: 'pointer',
-              marginBottom: '1rem'
+              marginBottom: '1rem',
+              transition: 'all 0.2s ease'
             }}
             onClick={() => fileInputRef.current?.click()}
           >
             <div id="admin-qr-file-box" style={{ display: 'none' }} />
-            <Upload size={32} style={{ color: 'var(--primary-400)', marginBottom: '0.75rem' }} />
-            <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-              Click to select or upload QR Image
+            <Upload size={36} style={{ color: 'var(--primary-400)', marginBottom: '0.75rem' }} />
+            <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem', marginBottom: '0.25rem' }}>
+              Click to upload QR Image or Invoice Bill PDF Screenshot
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Supports PNG, JPG, WEBP invoice or QR screenshot
+              Supports PNG, JPG, WEBP formats. Instant scanning.
             </div>
             <input
               ref={fileInputRef}
