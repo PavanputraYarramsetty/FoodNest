@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, MessageCircle, FileText, Plus, Scan } from 'lucide-react';
+import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, MessageCircle, FileText, Plus, Scan, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
@@ -25,6 +25,7 @@ const AdminOrders = () => {
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [scannedOrderFilter, setScannedOrderFilter] = useState(null);
 
   const prevOrdersRef = useRef([]);
   const isFirstLoadRef = useRef(true);
@@ -78,26 +79,47 @@ const AdminOrders = () => {
       setDownloadingId(null);
     }
   };
+
   const handleScanSuccess = (scannedText) => {
     if (!scannedText) return;
     const cleanText = scannedText.trim();
     
-    // Attempt to match order in loaded list
+    // Extract numeric order number from formatted strings like ORDER_12, ORDER-12, #12
+    let extractedOrderNum = null;
+    const matchNum = cleanText.match(/(?:ORDER[_\-#]?|#)(\d+)/i);
+    if (matchNum) {
+      extractedOrderNum = matchNum[1];
+    }
+
+    // Attempt to match order strictly in loaded list
     const matched = orders.find(o => 
-      o.id === cleanText ||
+      (o.id && o.id.toLowerCase() === cleanText.toLowerCase()) ||
       String(o.order_number) === cleanText ||
-      cleanText.includes(o.id) ||
-      cleanText.includes(`ORDER_${o.order_number}`)
+      (extractedOrderNum && String(o.order_number) === extractedOrderNum) ||
+      (o.id && cleanText.toLowerCase().includes(o.id.toLowerCase()))
     );
 
     if (matched) {
-      setSearchQuery(String(matched.order_number));
-      toast.success(`🎉 Scanned Order #${matched.order_number} (${matched.customer?.name || 'Customer'})!`);
+      setScannedOrderFilter(matched.id);
+      setIsScanModalOpen(false);
+      toast.success(`🎯 Filtered to Order #${matched.order_number} (${matched.customer?.name || 'Customer'})`);
     } else {
-      setSearchQuery(cleanText);
-      toast.success(`Scanned code: "${cleanText}". Filtered order list.`);
+      // Fallback match on numeric order number
+      const numericMatch = orders.find(o => String(o.order_number) === cleanText);
+      if (numericMatch) {
+        setScannedOrderFilter(numericMatch.id);
+        setIsScanModalOpen(false);
+        toast.success(`🎯 Filtered to Order #${numericMatch.order_number}`);
+      } else {
+        toast.error(`Order not found for scanned QR code: "${cleanText}"`);
+      }
     }
   };
+
+  const scannedOrderObj = React.useMemo(() => {
+    if (!scannedOrderFilter) return null;
+    return orders.find(o => o.id === scannedOrderFilter);
+  }, [orders, scannedOrderFilter]);
 
 
 
@@ -203,6 +225,9 @@ const AdminOrders = () => {
   };
 
   const sorted = React.useMemo(() => {
+    if (scannedOrderFilter) {
+      return orders.filter(order => order.id === scannedOrderFilter);
+    }
     const q = searchQuery.toLowerCase();
     const filtered = orders.filter(order => {
       const matchesBlock = !blockFilter || order.customer?.hostel_block === blockFilter;
@@ -219,7 +244,7 @@ const AdminOrders = () => {
       return matchesBlock && matchesOrderId && matchesSearch;
     });
     return [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [orders, searchQuery, blockFilter, orderIdFilter]);
+  }, [orders, searchQuery, blockFilter, orderIdFilter, scannedOrderFilter]);
 
   if (loading) {
     return <LoadingState />;
@@ -269,6 +294,63 @@ const AdminOrders = () => {
         }
       />
 
+      {/* Active QR Filter Notification Banner */}
+      {scannedOrderFilter && (
+        <div 
+          style={{
+            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(234, 88, 12, 0.06) 100%)',
+            border: '1px solid rgba(249, 115, 22, 0.3)',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap',
+            boxShadow: '0 4px 15px rgba(249, 115, 22, 0.08)'
+          }}
+          className="qr-filter-banner"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: 'rgba(249, 115, 22, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--primary-400)',
+              flexShrink: 0
+            }}>
+              <Scan size={22} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                QR Filter Active: Order #{scannedOrderObj?.order_number || 'Details'}
+                {scannedOrderObj?.status && (
+                  <span className={`badge badge-${scannedOrderObj.status.toLowerCase()}`}>
+                    {scannedOrderObj.status}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                Showing only the scanned order • Customer: <strong>{scannedOrderObj?.customer?.name || 'Customer'}</strong> ({scannedOrderObj?.customer?.phone || 'No phone'}) • Total: ₹{scannedOrderObj?.total_amount}
+              </div>
+            </div>
+          </div>
+          <MotionButton
+            className="btn btn-primary"
+            onClick={() => setScannedOrderFilter(null)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}
+            id="clear-qr-filter-btn"
+          >
+            <ArrowLeft size={18} /> Go Back to All Orders
+          </MotionButton>
+        </div>
+      )}
+
       <div className="filter-bar">
         <div className="form-group">
           <label className="form-label">Start Date</label>
@@ -300,8 +382,8 @@ const AdminOrders = () => {
           <label className="form-label">Filter by Order ID</label>
           <input type="text" className="form-input" placeholder="e.g. 1" value={orderIdFilter} onChange={(e) => setOrderIdFilter(e.target.value)} id="order-id-filter" style={{ minWidth: '100px', width: '100%' }} />
         </div>
-        {(startDateFilter || endDateFilter || statusFilter || blockFilter || orderIdFilter || searchQuery) && (
-          <MotionButton className="btn btn-ghost btn-sm" onClick={() => { setStartDateFilter(''); setEndDateFilter(''); setStatusFilter(''); setBlockFilter(''); setOrderIdFilter(''); setSearchQuery(''); setSearchParams({}); }}>
+        {(startDateFilter || endDateFilter || statusFilter || blockFilter || orderIdFilter || searchQuery || scannedOrderFilter) && (
+          <MotionButton className="btn btn-ghost btn-sm" onClick={() => { setStartDateFilter(''); setEndDateFilter(''); setStatusFilter(''); setBlockFilter(''); setOrderIdFilter(''); setSearchQuery(''); setScannedOrderFilter(null); setSearchParams({}); }}>
             Clear Filters
           </MotionButton>
         )}
@@ -326,7 +408,20 @@ const AdminOrders = () => {
       </div>
 
       {sorted.length === 0 ? (
-        <EmptyState icon={Package} title="No orders found" description="Try adjusting your filters or wait for new orders to arrive!" />
+        scannedOrderFilter ? (
+          <EmptyState 
+            icon={Package} 
+            title="Scanned Order Not Found" 
+            description="The order associated with the scanned QR code is no longer in the list or was deleted."
+            action={
+              <MotionButton className="btn btn-primary" onClick={() => setScannedOrderFilter(null)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1rem' }}>
+                <ArrowLeft size={16} /> Go Back to All Orders
+              </MotionButton>
+            }
+          />
+        ) : (
+          <EmptyState icon={Package} title="No orders found" description="Try adjusting your filters or wait for new orders to arrive!" />
+        )
       ) : (
         <div className="table-wrapper">
           <table className="table table-responsive-cards">
