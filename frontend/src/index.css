@@ -8820,3 +8820,159 @@ body:has(.auth-page) {
   transform: translateY(-1px);
 }
 
+/* ======================== ADMIN CREATE ORDER RESPONSIVE MOBILE STYLES ======================== */
+.admin-create-order-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.admin-create-order-counter-banner {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(20, 16, 28, 0.95) 100%);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-create-order-counter-input-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.admin-create-order-counter-input-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-create-order-summary-card {
+  position: sticky;
+  top: 1rem;
+}
+
+.admin-create-order-customer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-create-order-customer-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: auto;
+}
+
+.admin-create-order-new-customer-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-create-order-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-create-order-menu-search-wrap {
+  position: relative;
+  width: 220px;
+}
+
+.admin-create-order-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.75rem;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+/* Mobile Responsiveness for Create Order Page */
+@media (max-width: 900px) {
+  .admin-create-order-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  .admin-create-order-summary-card {
+    position: relative !important;
+    top: 0 !important;
+  }
+
+  .admin-create-order-counter-banner {
+    padding: 1rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.85rem !important;
+  }
+
+  .admin-create-order-counter-input-wrap {
+    width: 100% !important;
+    align-items: stretch !important;
+  }
+
+  .admin-create-order-counter-input-box {
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  .admin-create-order-customer-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .admin-create-order-customer-tabs {
+    width: 100% !important;
+  }
+
+  .admin-create-order-customer-tabs button {
+    flex: 1 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  .admin-create-order-new-customer-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-create-order-menu-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .admin-create-order-menu-search-wrap {
+    width: 100% !important;
+  }
+
+  .admin-create-order-menu-grid {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+    gap: 0.6rem !important;
+    max-height: 380px !important;
+  }
+}
+
+

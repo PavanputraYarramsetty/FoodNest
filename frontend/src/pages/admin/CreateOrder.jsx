@@ -272,64 +272,53 @@ const CreateOrder = () => {
 
       {/* Top Banner: Incremented Order ID Controls */}
       <div 
-        className="glass-card" 
-        style={{
-          marginBottom: '1.5rem',
-          padding: '1.25rem 1.5rem',
-          background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(20, 16, 28, 0.95) 100%)',
-          border: '1px solid rgba(249, 115, 22, 0.3)',
-          borderRadius: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
+        className="glass-card admin-create-order-counter-banner"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <div 
             style={{
-              width: '48px',
-              height: '48px',
+              width: '44px',
+              height: '44px',
               borderRadius: '12px',
               background: 'rgba(249, 115, 22, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--primary-400)'
+              color: 'var(--primary-400)',
+              flexShrink: 0
             }}
           >
-            <Hash size={26} />
+            <Hash size={24} />
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Current Latest Order ID: <strong style={{ color: '#fff', fontSize: '1rem' }}>#{orderCounter.currentLastNumber || 0}</strong>
+                Current Latest: <strong style={{ color: '#fff', fontSize: '0.95rem' }}>#{orderCounter.currentLastNumber || 0}</strong>
               </span>
               <span style={{ color: 'var(--text-muted)' }}>|</span>
-              <span style={{ fontSize: '0.85rem', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Sparkles size={14} /> Next Auto ID: <strong style={{ color: 'var(--success)', fontSize: '1.05rem' }}>#{orderCounter.nextOrderNumber}</strong>
+              <span style={{ fontSize: '0.85rem', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Sparkles size={14} /> Next Auto: <strong style={{ color: 'var(--success)', fontSize: '1rem' }}>#{orderCounter.nextOrderNumber}</strong>
               </span>
               <button 
                 type="button" 
                 onClick={handleRefreshCounter} 
                 className="btn btn-ghost btn-sm" 
-                style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', gap: '0.25rem' }}
+                style={{ padding: '0.15rem 0.45rem', fontSize: '0.72rem', gap: '0.2rem' }}
                 title="Refresh order counter"
               >
-                <RefreshCw size={12} /> Sync Counter
+                <RefreshCw size={12} /> Sync
               </button>
             </div>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Enter or modify the Order ID below. When submitted, future orders will auto-increment from this ID.
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Order ID auto-increments. You can also customize the ID below.
             </p>
           </div>
         </div>
 
         {/* Order ID Input Field */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem 0.75rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <label htmlFor="custom-order-id-input" style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary-400)', whiteSpace: 'nowrap' }}>
+        <div className="admin-create-order-counter-input-wrap">
+          <div className="admin-create-order-counter-input-box">
+            <label htmlFor="custom-order-id-input" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-400)', whiteSpace: 'nowrap' }}>
               Order ID #:
             </label>
             <input
@@ -338,10 +327,10 @@ const CreateOrder = () => {
               min="1"
               className="form-input"
               style={{
-                width: '110px',
+                width: '100px',
                 textAlign: 'center',
                 fontWeight: 700,
-                fontSize: '1.1rem',
+                fontSize: '1.05rem',
                 color: parseInt(customOrderNumber) <= orderCounter.currentLastNumber ? 'var(--warning)' : 'var(--primary-300)',
                 borderColor: parseInt(customOrderNumber) <= orderCounter.currentLastNumber ? 'rgba(234, 179, 8, 0.5)' : undefined,
                 padding: '0.35rem 0.5rem'
@@ -362,35 +351,35 @@ const CreateOrder = () => {
         </div>
       </div>
 
-      <div className="admin-create-order-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(300px, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="admin-create-order-grid">
         
         {/* LEFT COLUMN: Customer Selection & Small-Sized Menu */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
           {/* Section 1: Customer Details */}
-          <div className="glass-card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div className="glass-card" style={{ padding: '1.15rem' }}>
+            <div className="admin-create-order-customer-header">
               <h3 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <User size={18} style={{ color: 'var(--primary-400)' }} /> Customer Details
               </h3>
               
               {/* Customer Mode Tabs */}
-              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.2rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="admin-create-order-customer-tabs">
                 <button
                   type="button"
                   onClick={() => setCustomerMode('existing')}
                   className={`btn btn-sm ${customerMode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
-                  style={{ borderRadius: '6px', fontSize: '0.8rem', padding: '0.3rem 0.75rem' }}
+                  style={{ borderRadius: '6px', fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}
                 >
-                  <User size={14} style={{ marginRight: '0.3rem' }} /> Select Existing Customer
+                  <User size={13} style={{ marginRight: '0.25rem' }} /> Select Existing
                 </button>
                 <button
                   type="button"
                   onClick={() => setCustomerMode('new')}
                   className={`btn btn-sm ${customerMode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
-                  style={{ borderRadius: '6px', fontSize: '0.8rem', padding: '0.3rem 0.75rem' }}
+                  style={{ borderRadius: '6px', fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}
                 >
-                  <UserPlus size={14} style={{ marginRight: '0.3rem' }} /> Enter New Customer
+                  <UserPlus size={13} style={{ marginRight: '0.25rem' }} /> Enter New
                 </button>
               </div>
             </div>
@@ -402,7 +391,7 @@ const CreateOrder = () => {
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Search customer by name, phone, or hostel block..."
+                    placeholder="Search customer by name, phone, or block..."
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                   />
@@ -412,7 +401,7 @@ const CreateOrder = () => {
                 <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '0.25rem' }}>
                   {filteredCustomers.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      No registered customers found. Switch to "Enter New Customer" tab to create one!
+                      No registered customers found. Switch to "Enter New" tab to create one!
                     </div>
                   ) : (
                     filteredCustomers.map(cust => (
@@ -448,7 +437,7 @@ const CreateOrder = () => {
               </div>
             ) : (
               /* New Customer Form */
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+              <div className="admin-create-order-new-customer-form">
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>Customer Name *</label>
                   <input
@@ -498,14 +487,14 @@ const CreateOrder = () => {
           </div>
 
           {/* Section 2: Small-Sized Menu Selection */}
-          <div className="glass-card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div className="glass-card" style={{ padding: '1.15rem' }}>
+            <div className="admin-create-order-menu-header">
               <h3 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShoppingBag size={18} style={{ color: 'var(--primary-400)' }} /> Menu Items (Small Sized View)
               </h3>
 
               {/* Search Bar for Menu */}
-              <div style={{ position: 'relative', width: '220px' }}>
+              <div className="admin-create-order-menu-search-wrap">
                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
@@ -519,12 +508,12 @@ const CreateOrder = () => {
             </div>
 
             {/* Category Filter Pills */}
-            <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '0.75rem', WebkitOverflowScrolling: 'touch' }}>
               <button
                 type="button"
                 onClick={() => setSelectedCategory('All')}
                 className={`btn btn-sm ${selectedCategory === 'All' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '0.2rem 0.65rem', fontSize: '0.78rem', borderRadius: '9999px', whiteSpace: 'nowrap' }}
+                style={{ padding: '0.2rem 0.65rem', fontSize: '0.78rem', borderRadius: '9999px', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 All
               </button>
@@ -534,7 +523,7 @@ const CreateOrder = () => {
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
                   className={`btn btn-sm ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`}
-                  style={{ padding: '0.2rem 0.65rem', fontSize: '0.78rem', borderRadius: '9999px', whiteSpace: 'nowrap' }}
+                  style={{ padding: '0.2rem 0.65rem', fontSize: '0.78rem', borderRadius: '9999px', whiteSpace: 'nowrap', flexShrink: 0 }}
                 >
                   {cat}
                 </button>
@@ -543,14 +532,7 @@ const CreateOrder = () => {
 
             {/* Small-Sized Menu Grid */}
             <div 
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-                gap: '0.75rem',
-                maxHeight: '440px',
-                overflowY: 'auto',
-                paddingRight: '0.25rem'
-              }}
+              className="admin-create-order-menu-grid"
             >
               {filteredMenu.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
@@ -564,12 +546,12 @@ const CreateOrder = () => {
                       key={item.id}
                       style={{
                         background: qty > 0 ? 'rgba(249, 115, 22, 0.08)' : 'rgba(255,255,255,0.02)',
-                        border: qty > 0 ? '1.5 solid var(--primary-500)' : '1px solid rgba(255,255,255,0.07)',
+                        border: qty > 0 ? '1.5px solid var(--primary-500)' : '1px solid rgba(255,255,255,0.07)',
                         borderRadius: '10px',
                         padding: '0.65rem 0.75rem',
                         display: 'flex',
                         flexDirection: 'column',
-                        justify: 'space-between',
+                        justifyContent: 'space-between',
                         transition: 'all 0.15s ease'
                       }}
                     >
@@ -577,7 +559,7 @@ const CreateOrder = () => {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                           <span 
                             style={{
-                              fontSize: '0.65rem',
+                              fontSize: '0.62rem',
                               padding: '0.1rem 0.35rem',
                               borderRadius: '4px',
                               fontWeight: 700,
@@ -604,7 +586,7 @@ const CreateOrder = () => {
                           type="button"
                           onClick={() => handleDecrement(item.id)}
                           className="btn btn-ghost btn-sm"
-                          style={{ padding: '0.15rem 0.4rem', height: 'auto', color: qty > 0 ? '#fff' : 'var(--text-muted)' }}
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', minWidth: '28px', color: qty > 0 ? '#fff' : 'var(--text-muted)' }}
                           disabled={qty === 0}
                         >
                           <Minus size={12} />
@@ -630,7 +612,7 @@ const CreateOrder = () => {
                           type="button"
                           onClick={() => handleIncrement(item.id)}
                           className="btn btn-primary btn-sm"
-                          style={{ padding: '0.15rem 0.4rem', height: 'auto' }}
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', minWidth: '28px' }}
                         >
                           <Plus size={12} />
                         </button>
@@ -644,7 +626,7 @@ const CreateOrder = () => {
         </div>
 
         {/* RIGHT COLUMN: Order Summary & Checkout */}
-        <div className="glass-card" style={{ padding: '1.25rem', position: 'sticky', top: '1rem' }}>
+        <div className="glass-card admin-create-order-summary-card" style={{ padding: '1.15rem' }}>
           <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ShoppingBag size={18} style={{ color: 'var(--primary-400)' }} /> Order Summary
           </h3>

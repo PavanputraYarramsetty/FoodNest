@@ -254,9 +254,15 @@ const AdminOrders = () => {
     <div>
       <PageHeader
         title="Orders"
-        subtitle="View and manage all customer orders"
+        subtitle={scannedOrderFilter ? `Showing scanned order #${scannedOrderObj?.order_number || ''}` : "View and manage all customer orders"}
         showBack={true}
-        backTo="/admin/home"
+        onBack={() => {
+          if (scannedOrderFilter) {
+            setScannedOrderFilter(null);
+          } else {
+            navigate('/admin/home');
+          }
+        }}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <MotionButton
@@ -293,63 +299,6 @@ const AdminOrders = () => {
           </div>
         }
       />
-
-      {/* Active QR Filter Notification Banner */}
-      {scannedOrderFilter && (
-        <div 
-          style={{
-            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(234, 88, 12, 0.06) 100%)',
-            border: '1px solid rgba(249, 115, 22, 0.3)',
-            borderRadius: '12px',
-            padding: '1rem 1.25rem',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            flexWrap: 'wrap',
-            boxShadow: '0 4px 15px rgba(249, 115, 22, 0.08)'
-          }}
-          className="qr-filter-banner"
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: 'rgba(249, 115, 22, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--primary-400)',
-              flexShrink: 0
-            }}>
-              <Scan size={22} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                QR Filter Active: Order #{scannedOrderObj?.order_number || 'Details'}
-                {scannedOrderObj?.status && (
-                  <span className={`badge badge-${scannedOrderObj.status.toLowerCase()}`}>
-                    {scannedOrderObj.status}
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                Showing only the scanned order • Customer: <strong>{scannedOrderObj?.customer?.name || 'Customer'}</strong> ({scannedOrderObj?.customer?.phone || 'No phone'}) • Total: ₹{scannedOrderObj?.total_amount}
-              </div>
-            </div>
-          </div>
-          <MotionButton
-            className="btn btn-primary"
-            onClick={() => setScannedOrderFilter(null)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}
-            id="clear-qr-filter-btn"
-          >
-            <ArrowLeft size={18} /> Go Back to All Orders
-          </MotionButton>
-        </div>
-      )}
 
       <div className="filter-bar">
         <div className="form-group">
