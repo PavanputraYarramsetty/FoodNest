@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 
 /**
  * Generates and downloads a professional, colorful half-A4 restaurant invoice PDF.
@@ -368,7 +369,31 @@ const generateInvoice = async (order, user) => {
     doc.text(line, (pw - lw) / 2, y);
     y += 3.5;
   });
-  y += 3;
+  y += 2;
+
+  // ══════════════════════════════════════════════
+  // ORDER QR CODE
+  // ══════════════════════════════════════════════
+  try {
+    const qrDataUrl = await QRCode.toDataURL(order.id || `ORDER_${order.order_number}`, {
+      margin: 1,
+      width: 180,
+      color: { dark: '#0e0b12', light: '#ffffff' }
+    });
+    const qrSize = 20; // 20mm x 20mm
+    const qrX = (pw - qrSize) / 2;
+    doc.addImage(qrDataUrl, 'PNG', qrX, y, qrSize, qrSize);
+    y += qrSize + 2;
+
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...mid);
+    const scanLabel = 'Scan QR code at canteen counter for order verification';
+    doc.text(scanLabel, (pw - doc.getTextWidth(scanLabel)) / 2, y);
+    y += 4;
+  } catch (qrErr) {
+    console.warn('Failed to render QR in invoice PDF:', qrErr);
+  }
 
   // ══════════════════════════════════════════════
   // FOOTER

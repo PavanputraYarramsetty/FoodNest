@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'motion/react';
 import toast from 'react-hot-toast';
-import { Package, XCircle, FileDown, Clock, ChefHat, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Package, XCircle, FileDown, Clock, ChefHat, CheckCircle2, ChevronRight, QrCode } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
 import MotionButton from '../../components/ui/MotionButton';
+import OrderQrModal from '../../components/ui/OrderQrModal';
 import { fadeUp } from '../../lib/motion';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,6 +16,8 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedQrOrder, setSelectedQrOrder] = useState(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -183,6 +186,18 @@ const Orders = () => {
 
             <div className="order-actions">
               <MotionButton
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setSelectedQrOrder(order);
+                  setQrModalOpen(true);
+                }}
+                id={`show-qr-${order.id}`}
+                style={{ color: 'var(--primary-400)', borderColor: 'rgba(249, 115, 22, 0.4)' }}
+              >
+                <QrCode size={14} /> Show QR Code
+              </MotionButton>
+
+              <MotionButton
                 className="btn btn-invoice btn-sm"
                 onClick={() => handleDownloadInvoice(order)}
                 disabled={downloadingId === order.id}
@@ -209,6 +224,13 @@ const Orders = () => {
           </motion.div>
         ))
       )}
+
+      {/* Customer Order QR Code Modal */}
+      <OrderQrModal
+        open={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        order={selectedQrOrder}
+      />
     </div>
   );
 };

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, MessageCircle, FileText, Plus } from 'lucide-react';
+import { Download, CheckCircle, Clock, Package, Phone, Trash2, Search, X, ChefHat, MessageCircle, FileText, Plus, Scan } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PageHeader from '../../components/ui/PageHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/ui/LoadingState';
 import MotionButton from '../../components/ui/MotionButton';
 import AnimatedModal from '../../components/ui/AnimatedModal';
+import QRScannerModal from '../../components/ui/QRScannerModal';
 
 const AdminOrders = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const AdminOrders = () => {
   const [orderIdFilter, setOrderIdFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
 
   const prevOrdersRef = useRef([]);
@@ -74,6 +76,26 @@ const AdminOrders = () => {
       toast.error('Failed to generate invoice: ' + (err.message || 'Please try again.'));
     } finally {
       setDownloadingId(null);
+    }
+  };
+  const handleScanSuccess = (scannedText) => {
+    if (!scannedText) return;
+    const cleanText = scannedText.trim();
+    
+    // Attempt to match order in loaded list
+    const matched = orders.find(o => 
+      o.id === cleanText ||
+      String(o.order_number) === cleanText ||
+      cleanText.includes(o.id) ||
+      cleanText.includes(`ORDER_${o.order_number}`)
+    );
+
+    if (matched) {
+      setSearchQuery(String(matched.order_number));
+      toast.success(`🎉 Scanned Order #${matched.order_number} (${matched.customer?.name || 'Customer'})!`);
+    } else {
+      setSearchQuery(cleanText);
+      toast.success(`Scanned code: "${cleanText}". Filtered order list.`);
     }
   };
 
@@ -221,6 +243,14 @@ const AdminOrders = () => {
               <Plus size={18} /> Create Order
             </MotionButton>
             <MotionButton
+              className="btn btn-secondary"
+              onClick={() => setIsScanModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary-400)', borderColor: 'rgba(249, 115, 22, 0.4)' }}
+              id="scan-qr-btn"
+            >
+              <Scan size={18} /> Scan QR
+            </MotionButton>
+            <MotionButton
               className={`btn ${autoSync ? 'btn-success' : 'btn-ghost'}`}
               onClick={() => setAutoSync(!autoSync)}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -348,12 +378,16 @@ const AdminOrders = () => {
             <button className="btn btn-ghost" onClick={() => setIsClearModalOpen(false)} style={{ flex: 1 }}>
               Cancel
             </button>
-            <button className="btn btn-danger" onClick={clearAllOrders} style={{ flex: 1 }}>
-              Yes, Delete All
-            </button>
           </div>
         </div>
       </AnimatedModal>
+
+      {/* QR Code Scanner Modal */}
+      <QRScannerModal
+        open={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onScanSuccess={handleScanSuccess}
+      />
     </div>
   );
 };
