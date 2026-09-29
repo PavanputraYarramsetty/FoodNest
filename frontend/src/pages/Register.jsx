@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { AlertCircle, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, KeyRound, Mail, Phone, ArrowLeft, UserCheck } from 'lucide-react';
 import MotionButton from '../components/ui/MotionButton';
 import AlertBanner from '../components/ui/AlertBanner';
 import { useMotionSafe } from '../lib/motion';
@@ -10,6 +10,7 @@ import MagicRings from '../components/MagicRings';
 import ThemeToggleDock from '../components/ThemeToggleDock';
 
 const Register = () => {
+  const [step, setStep] = useState(1); // 1: Registration Form, 2: OTP Verification
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -17,11 +18,15 @@ const Register = () => {
     hostelBlock: '',
     password: ''
   });
+  const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user, register } = useAuth();
+  const [countdown, setCountdown] = useState(0);
+
+  const { register, verifyEmail, resendVerification } = useAuth();
   const navigate = useNavigate();
   const { transition } = useMotionSafe();
   const cardRef = useRef(null);
@@ -34,17 +39,20 @@ const Register = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-
-
-
-
-
+  // Resend Countdown timer
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
   };
 
+  // Step 1: Submit Registration Form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -62,8 +70,8 @@ const Register = () => {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -71,8 +79,9 @@ const Register = () => {
 
     try {
       await register({ ...formData, confirmPassword: formData.password });
-      setSuccess('Registration successful! A 6-digit verification code has been sent to your email. Redirecting to sign in...');
-      setTimeout(() => navigate('/login'), 2500);
+      setSuccess(`A 6-digit verification code has been sent to ${formData.email.trim()}.`);
+      setStep(2);
+      setCountdown(30);
     } catch (err) {
       if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -86,12 +95,53 @@ const Register = () => {
     }
   };
 
+  // Step 2: Verify OTP
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    const cleanOtp = otp.trim();
+    if (!cleanOtp || cleanOtp.length < 4) {
+      setError('Please enter the 6-digit verification code sent to your email.');
+      return;
+    }
+
+    setVerifyLoading(true);
+
+    try {
+      const res = await verifyEmail(cleanOtp, formData.email.trim());
+      setSuccess('🎉 Verification successful! Your account is active. Redirecting to Sign In...');
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid or expired 6-digit code. Please check your email and try again.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Resend OTP handler
+  const handleResendOtp = async () => {
+    setError('');
+    setVerifyLoading(true);
+    try {
+      const res = await resendVerification(formData.email.trim());
+      setSuccess(res.message || `A fresh 6-digit code was sent to ${formData.email.trim()}`);
+      setCountdown(30);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to resend code. Please try again.');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
   return (
     <div className="auth-page" style={{ background: 'transparent' }}>
       {/* Theme Toggle Dock — fixed top right */}
       <ThemeToggleDock />
 
-      {/* Simplified, Lightweight Themed MagicRings Background - Full Page Coverage */}
+      {/* Themed MagicRings Background */}
       <div
         className="auth-magic-rings"
         style={{
@@ -134,12 +184,12 @@ const Register = () => {
       </div>
 
       <motion.div
-        className="auth-container auth-container-wide"
+        className={`auth-container ${step === 1 ? 'auth-container-wide' : ''}`}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={transition}
       >
-        <div className="auth-card" ref={cardRef}>
+        <div className="auth-card" ref={cardRef} style={{ maxWidth: step === 2 ? '460px' : undefined }}>
           <div className="auth-header">
             <Link to="/" className="auth-header-brand" title="Back to Home" style={{ textDecoration: 'none', color: 'inherit', display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
               <motion.div
@@ -150,9 +200,15 @@ const Register = () => {
               >
                 <img src="/canteen-logo.png" alt="AparnaDevi Logo" className="auth-logo-img" />
               </motion.div>
-              <h1 className="auth-title">Create Account</h1>
+              <h1 className="auth-title">
+                {step === 1 ? 'Create Account' : 'Verify Email'}
+              </h1>
             </Link>
-            <p className="auth-subtitle">Join AparnaCanteen today</p>
+            <p className="auth-subtitle">
+              {step === 1 
+                ? 'Join AparnaCanteen today' 
+                : `Enter the 6-digit code sent to ${formData.email}`}
+            </p>
           </div>
 
           <AlertBanner type="error" show={!!error}>
@@ -165,106 +221,169 @@ const Register = () => {
             {success}
           </AlertBanner>
 
-          <form onSubmit={handleSubmit}>
-            <div className="auth-row-2col">
-              <div className="form-group">
-                <label className="form-label" htmlFor="register-name">Full Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  className="form-input"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  id="register-name"
-                />
+          {step === 1 ? (
+            <form onSubmit={handleSubmit}>
+              <div className="auth-row-2col">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="register-name">Full Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    className="form-input"
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    id="register-name"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="register-phone">Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    className="form-input"
+                    placeholder="Enter your phone number"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                    id="register-phone"
+                  />
+                </div>
+              </div>
+
+              <div className="auth-row-2col">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="register-email">Email Address *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    className="form-input"
+                    placeholder="Enter your email address"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    id="register-email"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="register-block">Hostel Block *</label>
+                  <select
+                    name="hostelBlock"
+                    className="form-input"
+                    value={formData.hostelBlock}
+                    onChange={handleChange}
+                    required
+                    id="register-block"
+                  >
+                    <option value="">Select Block</option>
+                    <option value="F Block (Old)">F Block (Old)</option>
+                    <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
+                  </select>
+                </div>
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="register-phone">Phone Number *</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  className="form-input"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  id="register-phone"
-                />
+                <label className="form-label" htmlFor="register-password">Password *</label>
+                <div className="auth-input-wrapper">
+                  <Lock size={18} className="auth-input-icon" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    className="form-input has-toggle"
+                    placeholder="Min. 6 characters"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    minLength={6}
+                    id="register-password"
+                  />
+                  <button
+                    type="button"
+                    className="auth-toggle-password"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="auth-row-2col">
+              <MotionButton
+                type="submit"
+                className="btn btn-primary btn-lg auth-submit-btn"
+                style={{ width: '100%' }}
+                disabled={loading}
+                id="register-submit"
+              >
+                {loading ? <span className="btn-spinner" aria-hidden="true" /> : 'Create Account & Get OTP'}
+              </MotionButton>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="auth-form">
               <div className="form-group">
-                <label className="form-label" htmlFor="register-email">Email Address *</label>
-                <input
-                  type="email"
-                  name="email"
-                  className="form-input"
-                  placeholder="Enter your email address"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  id="register-email"
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label className="form-label" htmlFor="register-otp" style={{ margin: 0 }}>6-Digit Verification Code</label>
+                  <button
+                    type="button"
+                    onClick={() => { setStep(1); setError(''); setSuccess(''); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary-400)', fontSize: '0.78rem', cursor: 'pointer', padding: 0 }}
+                  >
+                    Edit Details
+                  </button>
+                </div>
+                <div className="auth-input-wrapper">
+                  <KeyRound size={18} className="auth-input-icon" />
+                  <input
+                    type="text"
+                    id="register-otp"
+                    name="otp"
+                    className="form-input"
+                    placeholder="e.g. 123456"
+                    value={otp}
+                    onChange={(e) => {
+                      setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      setError('');
+                    }}
+                    maxLength={6}
+                    required
+                    autoFocus
+                    style={{ letterSpacing: '6px', fontWeight: 700, fontSize: '1.2rem', textAlign: 'center' }}
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="register-block">Hostel Block *</label>
-                <select
-                  name="hostelBlock"
-                  className="form-input"
-                  value={formData.hostelBlock}
-                  onChange={handleChange}
-                  required
-                  id="register-block"
-                >
-                  <option value="">Select Block</option>
-                  <option value="F Block (Old)">F Block (Old)</option>
-                  <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="register-password">Password *</label>
-              <div className="auth-input-wrapper">
-                <Lock size={18} className="auth-input-icon" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  className="form-input has-toggle"
-                  placeholder="Min. 6 characters"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  minLength={6}
-                  id="register-password"
-                />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.82rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Didn't receive code?</span>
                 <button
                   type="button"
-                  className="auth-toggle-password"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  aria-pressed={showPassword}
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={handleResendOtp}
+                  disabled={countdown > 0 || verifyLoading}
+                  style={{
+                    background: 'none', border: 'none',
+                    color: countdown > 0 ? 'var(--text-muted)' : 'var(--primary-400)',
+                    cursor: countdown > 0 ? 'default' : 'pointer',
+                    fontWeight: 600
+                  }}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
                 </button>
               </div>
-            </div>
 
-            <MotionButton
-              type="submit"
-              className="btn btn-primary btn-lg auth-submit-btn"
-              style={{ width: '100%' }}
-              disabled={loading}
-              id="register-submit"
-            >
-              {loading ? <span className="btn-spinner" aria-hidden="true" /> : 'Create Account'}
-            </MotionButton>
-          </form>
+              <MotionButton
+                type="submit"
+                className="btn btn-primary btn-lg auth-submit-btn"
+                disabled={verifyLoading}
+                style={{ width: '100%' }}
+                id="verify-otp-submit"
+              >
+                {verifyLoading ? <span className="btn-spinner" aria-hidden="true" /> : 'Verify & Complete Registration'}
+              </MotionButton>
+            </form>
+          )}
 
           <div className="auth-footer">
             Already have an account? <Link to="/login" replace>Sign In</Link>
