@@ -77,9 +77,6 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const verificationOtp = generateOtp();
-    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
-
     const { error } = await supabase.from('users').insert({
       name: name.trim(),
       phone: trimmedPhone,
@@ -87,24 +84,18 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       hostel_block: hostelBlock,
       role: 'customer',
-      verification_token: verificationOtp,
-      verification_expires: verificationExpires.toISOString(),
+      verification_token: null,
+      verification_expires: null,
       email_verified: false
     });
 
     if (error) {
       return res.status(500).json({ success: false, message: error.message });
     }
-    
-    try {
-      await emailService.sendVerificationEmail(trimmedEmail, verificationOtp);
-    } catch (emailErr) {
-      console.error('Failed to send verification OTP during registration', emailErr);
-    }
 
     res.status(201).json({
       success: true,
-      message: `Registration successful! A 6-digit verification code has been sent to ${trimmedEmail}.`,
+      message: 'Account created successfully! Please sign in to verify your account.',
       email: trimmedEmail
     });
 

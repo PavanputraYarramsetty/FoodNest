@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, KeyRound, Mail, Phone, UserCheck, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Mail, Phone, UserCheck } from 'lucide-react';
 import MotionButton from '../components/ui/MotionButton';
 import AlertBanner from '../components/ui/AlertBanner';
 import { useMotionSafe } from '../lib/motion';
@@ -17,20 +17,16 @@ const Register = () => {
     hostelBlock: '',
     password: ''
   });
-  const [otp, setOtp] = useState('');
-  const [registrationStep, setRegistrationStep] = useState('form'); // 'form' | 'otp' | 'success'
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verifyLoading, setVerifyLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [registeredSuccess, setRegisteredSuccess] = useState(false);
 
-  const { register, resendVerification } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
   const { transition } = useMotionSafe();
   const cardRef = useRef(null);
-  const otpInputRef = useRef(null);
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -40,27 +36,11 @@ const Register = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Resend Countdown timer
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
-
-  // Focus OTP input when OTP step becomes active
-  useEffect(() => {
-    if (registrationStep === 'otp' && otpInputRef.current) {
-      setTimeout(() => otpInputRef.current?.focus(), 350);
-    }
-  }, [registrationStep]);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
   };
 
-  // Step 1: Submit Registration Form → Send OTP → Stay on this page
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -87,10 +67,13 @@ const Register = () => {
 
     try {
       await register({ ...formData, confirmPassword: formData.password });
-      // ✅ Stay on same page — show OTP entry below
-      setSuccess(`A 6-digit verification code has been sent to ${formData.email.trim()}. Enter it below to verify your email.`);
-      setRegistrationStep('otp');
-      setCountdown(30);
+      setSuccess('Account created successfully! Redirecting to Sign In...');
+      setRegisteredSuccess(true);
+      
+      // Redirect to login after 1.5 seconds
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 1500);
     } catch (err) {
       if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -103,70 +86,6 @@ const Register = () => {
       setLoading(false);
     }
   };
-
-  // Step 2: Verify OTP → Show success → Redirect to Login
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    const cleanOtp = otp.trim();
-    if (!cleanOtp || cleanOtp.length < 4) {
-      setError('Please enter the 6-digit verification code sent to your email.');
-      return;
-    }
-
-    setVerifyLoading(true);
-
-    try {
-      // Call verify-otp API directly (without going through AuthContext.verifyEmail
-      // which sets token/user state — we DON'T want auto-login here)
-      const axios = (await import('axios')).default;
-      await axios.post('/auth/verify-otp', {
-        otp: cleanOtp,
-        token: cleanOtp,
-        email: formData.email.trim()
-      });
-
-      // ✅ Show success state — do NOT auto-login
-      setError('');
-      setSuccess('');
-      setRegistrationStep('success');
-
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        navigate('/login', { replace: true });
-      }, 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid or expired 6-digit code. Please check your email and try again.');
-    } finally {
-      setVerifyLoading(false);
-    }
-  };
-
-  // Resend OTP handler
-  const handleResendOtp = async () => {
-    setError('');
-    setVerifyLoading(true);
-    try {
-      const res = await resendVerification(formData.email.trim());
-      setSuccess(res.message || `A fresh 6-digit code was sent to ${formData.email.trim()}`);
-      setCountdown(30);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to resend code. Please try again.');
-    } finally {
-      setVerifyLoading(false);
-    }
-  };
-
-  // Allow editing details (go back to form step)
-  const handleEditDetails = () => {
-    setRegistrationStep('form');
-    setOtp('');
-    setError('');
-    setSuccess('');
-  };
-
-  const isFormLocked = registrationStep !== 'form';
 
   return (
     <div className="auth-page" style={{ background: 'transparent' }}>
@@ -233,34 +152,27 @@ const Register = () => {
                 <img src="/canteen-logo.png" alt="AparnaDevi Logo" className="auth-logo-img" />
               </motion.div>
               <h1 className="auth-title">
-                {registrationStep === 'success' ? 'Account Verified!' : 'Create Account'}
+                {registeredSuccess ? 'Account Created!' : 'Create Account'}
               </h1>
             </Link>
             <p className="auth-subtitle">
-              {registrationStep === 'form' && 'Join AparnaCanteen today'}
-              {registrationStep === 'otp' && 'Almost there — verify your email'}
-              {registrationStep === 'success' && 'You\'re all set to order!'}
+              {registeredSuccess ? 'Redirecting to Sign In...' : 'Join AparnaCanteen today'}
             </p>
           </div>
 
-          {/* ─── SUCCESS STATE ─── */}
-          {registrationStep === 'success' ? (
+          {registeredSuccess ? (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
               style={{
                 textAlign: 'center',
                 padding: '2rem 1.5rem',
               }}
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
+              <div
                 style={{
-                  width: '80px',
-                  height: '80px',
+                  width: '72px',
+                  height: '72px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15))',
                   display: 'flex',
@@ -270,16 +182,16 @@ const Register = () => {
                   border: '2px solid rgba(34, 197, 94, 0.4)',
                 }}
               >
-                <CheckCircle size={40} style={{ color: '#22c55e' }} />
-              </motion.div>
+                <CheckCircle size={36} style={{ color: '#22c55e' }} />
+              </div>
 
               <h2 style={{
-                fontSize: '1.35rem',
-                fontWeight: 800,
+                fontSize: '1.25rem',
+                fontWeight: 700,
                 color: '#22c55e',
                 marginBottom: '0.5rem',
               }}>
-                🎉 Email Verified Successfully!
+                🎉 Registration Successful!
               </h2>
 
               <p style={{
@@ -288,8 +200,7 @@ const Register = () => {
                 marginBottom: '1.5rem',
                 lineHeight: 1.5,
               }}>
-                Your account is now active.<br />
-                Redirecting to <strong>Sign In</strong> page in a few seconds...
+                Your account has been created. Redirecting to Sign In...
               </p>
 
               <div style={{
@@ -299,7 +210,7 @@ const Register = () => {
                 gap: '0.5rem',
               }}>
                 <span className="btn-spinner" aria-hidden="true" style={{ width: '18px', height: '18px' }} />
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Redirecting to login...</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Going to login...</span>
               </div>
 
               <button
@@ -316,12 +227,12 @@ const Register = () => {
                   textDecoration: 'underline',
                 }}
               >
-                Go to Sign In now →
+                Sign In now →
               </button>
             </motion.div>
           ) : (
             <>
-              {/* ─── ERROR / SUCCESS BANNERS ─── */}
+              {/* Error / Success Banners */}
               <AlertBanner type="error" show={!!error}>
                 <AlertCircle size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
                 {error}
@@ -332,7 +243,7 @@ const Register = () => {
                 {success}
               </AlertBanner>
 
-              {/* ─── REGISTRATION FORM ─── */}
+              {/* Registration Form */}
               <form onSubmit={handleSubmit}>
                 <div className="auth-row-2col">
                   <div className="form-group">
@@ -345,7 +256,6 @@ const Register = () => {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      disabled={isFormLocked}
                       id="register-name"
                     />
                   </div>
@@ -360,7 +270,6 @@ const Register = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       required
-                      disabled={isFormLocked}
                       id="register-phone"
                     />
                   </div>
@@ -377,7 +286,6 @@ const Register = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      disabled={isFormLocked}
                       id="register-email"
                     />
                   </div>
@@ -390,7 +298,6 @@ const Register = () => {
                       value={formData.hostelBlock}
                       onChange={handleChange}
                       required
-                      disabled={isFormLocked}
                       id="register-block"
                     >
                       <option value="">Select Block</option>
@@ -412,146 +319,31 @@ const Register = () => {
                       value={formData.password}
                       onChange={handleChange}
                       required
-                      disabled={isFormLocked}
                       minLength={6}
                       id="register-password"
                     />
-                    {!isFormLocked && (
-                      <button
-                        type="button"
-                        className="auth-toggle-password"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        aria-pressed={showPassword}
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="auth-toggle-password"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 </div>
 
-                {registrationStep === 'form' && (
-                  <MotionButton
-                    type="submit"
-                    className="btn btn-primary btn-lg auth-submit-btn"
-                    style={{ width: '100%' }}
-                    disabled={loading}
-                    id="register-submit"
-                  >
-                    {loading ? <span className="btn-spinner" aria-hidden="true" /> : 'Create Account'}
-                  </MotionButton>
-                )}
-              </form>
-
-              {/* ─── INLINE OTP SECTION (appears below Create Account) ─── */}
-              {registrationStep === 'otp' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, ease: 'easeOut' }}
-                  style={{
-                    marginTop: '1.25rem',
-                    padding: '1.35rem',
-                    borderRadius: '14px',
-                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.06), rgba(234, 88, 12, 0.03))',
-                    border: '1.5px solid rgba(249, 115, 22, 0.3)',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-                  }}
+                <MotionButton
+                  type="submit"
+                  className="btn btn-primary btn-lg auth-submit-btn"
+                  style={{ width: '100%' }}
+                  disabled={loading}
+                  id="register-submit"
                 >
-                  {/* OTP Header */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '0.75rem',
-                    paddingBottom: '0.6rem',
-                    borderBottom: '1px solid rgba(249, 115, 22, 0.15)',
-                  }}>
-                    <ShieldCheck size={20} style={{ color: 'var(--primary-400)' }} />
-                    <span style={{
-                      fontWeight: 700,
-                      color: 'var(--primary-400)',
-                      fontSize: '0.95rem',
-                    }}>
-                      Email Verification
-                    </span>
-                  </div>
-
-                  <form onSubmit={handleVerifyOtp}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <label className="form-label" htmlFor="register-otp" style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
-                        🔢 Enter 6-Digit Code sent to <strong style={{ color: 'var(--primary-400)' }}>{formData.email}</strong>
-                      </label>
-                    </div>
-
-                    <div className="auth-input-wrapper" style={{ marginBottom: '0.85rem' }}>
-                      <KeyRound size={18} className="auth-input-icon" />
-                      <input
-                        ref={otpInputRef}
-                        type="text"
-                        id="register-otp"
-                        name="otp"
-                        className="form-input"
-                        placeholder="e.g. 123456"
-                        value={otp}
-                        onChange={(e) => {
-                          setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
-                          setError('');
-                        }}
-                        maxLength={6}
-                        required
-                        style={{ letterSpacing: '8px', fontWeight: 700, fontSize: '1.3rem', textAlign: 'center' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', fontSize: '0.82rem' }}>
-                      <button
-                        type="button"
-                        onClick={handleEditDetails}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          fontSize: '0.82rem',
-                          padding: 0,
-                          textDecoration: 'underline',
-                        }}
-                      >
-                        ← Edit Details
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleResendOtp}
-                        disabled={countdown > 0 || verifyLoading}
-                        style={{
-                          background: 'none', border: 'none',
-                          color: countdown > 0 ? 'var(--text-muted)' : 'var(--primary-400)',
-                          cursor: countdown > 0 ? 'default' : 'pointer',
-                          fontWeight: 600,
-                          fontSize: '0.82rem',
-                        }}
-                      >
-                        {countdown > 0 ? `Resend in ${countdown}s` : '🔄 Resend Code'}
-                      </button>
-                    </div>
-
-                    <MotionButton
-                      type="submit"
-                      className="btn btn-primary btn-lg auth-submit-btn"
-                      disabled={verifyLoading || otp.length < 6}
-                      style={{
-                        width: '100%',
-                        background: 'linear-gradient(135deg, #ea580c, #f97316)',
-                        opacity: otp.length < 6 ? 0.7 : 1,
-                      }}
-                      id="verify-otp-submit"
-                    >
-                      {verifyLoading ? <span className="btn-spinner" aria-hidden="true" /> : '✓ Verify OTP & Complete'}
-                    </MotionButton>
-                  </form>
-                </motion.div>
-              )}
+                  {loading ? <span className="btn-spinner" aria-hidden="true" /> : 'Create Account'}
+                </MotionButton>
+              </form>
 
               <div className="auth-footer" style={{ marginTop: '1.25rem' }}>
                 Already have an account? <Link to="/login" replace>Sign In</Link>
@@ -565,4 +357,3 @@ const Register = () => {
 };
 
 export default Register;
-
