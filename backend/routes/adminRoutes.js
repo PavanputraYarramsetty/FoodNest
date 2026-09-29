@@ -761,12 +761,12 @@ router.get('/customers', async (req, res) => {
 // PUT /api/admin/customers/:id — Update customer details
 router.put('/customers/:id', async (req, res) => {
   try {
-    const { name, phone, email, hostel_block } = req.body;
+    const { name, phone, email, hostel_block, email_verified } = req.body;
     
     // Fetch user to ensure they exist and are a customer
     const { data: user, error: fetchError } = await supabase
       .from('users')
-      .select('id, role')
+      .select('id, role, email')
       .eq('id', req.params.id)
       .maybeSingle();
 
@@ -778,11 +778,45 @@ router.put('/customers/:id', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot edit admin accounts here' });
     }
 
+    const updatePayload = {};
+    if (name !== undefined) updatePayload.name = name.trim();
+    if (phone !== undefined) updatePayload.phone = phone.trim();
+    if (hostel_block !== undefined) updatePayload.hostel_block = hostel_block;
+    if (email_verified !== undefined) {
+      updatePayload.email_verified = Boolean(email_verified);
+      if (Boolean(email_verified)) {
+        updatePayload.verification_token = null;
+        updatePayload.verification_expires = null;
+      }
+    }
+
+    if (email !== undefined) {
+      const trimmedEmail = email ? email.trim().toLowerCase() : null;
+      if (trimmedEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+          return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+        }
+        // Check if email already in use by another user
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', trimmedEmail)
+          .neq('id', req.params.id)
+          .maybeSingle();
+
+        if (existingUser) {
+          return res.status(400).json({ success: false, message: 'Email already registered by another account' });
+        }
+      }
+      updatePayload.email = trimmedEmail;
+    }
+
     const { data: updatedCustomer, error: updateError } = await supabase
       .from('users')
-      .update({ name, phone, email, hostel_block })
+      .update(updatePayload)
       .eq('id', req.params.id)
-      .select()
+      .select('id, name, role, phone, email, email_verified, hostel_block, is_blocked, created_at, updated_at')
       .single();
 
     if (updateError) {
@@ -790,6 +824,80 @@ router.put('/customers/:id', async (req, res) => {
     }
 
     res.json({ success: true, message: 'Customer updated successfully', data: updatedCustomer });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PUT /api/admin/customers/:id/verify-email — Admin manual email verification
+router.put('/customers/:id/verify-email', async (req, res) => {
+  try {
+    const { email, verified = true } = req.body;
+
+    // Fetch user
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('id, role, email, name')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (fetchError || !user) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ success: false, message: 'Cannot modify admin accounts' });
+    }
+
+    const updates = {
+      email_verified: Boolean(verified),
+      verification_token: null,
+      verification_expires: null
+    };
+
+    if (email && email.trim()) {
+      const trimmedEmail = email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+      }
+
+      // Check if email already in use by another user
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', trimmedEmail)
+        .neq('id', req.params.id)
+        .maybeSingle();
+
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'Email already registered by another account' });
+      }
+
+      updates.email = trimmedEmail;
+    } else if (Boolean(verified) && !user.email) {
+      return res.status(400).json({ success: false, message: 'Please provide an email address to verify this customer.' });
+    }
+
+    const { data: updatedCustomer, error: updateError } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', req.params.id)
+      .select('id, name, role, phone, email, email_verified, hostel_block, is_blocked, created_at, updated_at')
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ success: false, message: updateError.message });
+    }
+
+    res.json({
+      success: true,
+      message: verified 
+        ? `Email (${updatedCustomer.email}) has been manually verified for ${updatedCustomer.name}`
+        : `Email verification removed for ${updatedCustomer.name}`,
+      data: updatedCustomer
+    });
 
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -546,7 +546,7 @@ router.post('/check-verification', async (req, res) => {
     const value = identifier.trim().toLowerCase();
     const isEmail = value.includes('@');
 
-    let query = supabase.from('users').select('id, email, email_verified');
+    let query = supabase.from('users').select('id, email, email_verified, role');
     if (isEmail) {
       query = query.eq('email', value);
     } else {
@@ -557,6 +557,15 @@ router.post('/check-verification', async (req, res) => {
 
     if (error || !user) {
       return res.json({ success: true, isVerified: false });
+    }
+
+    // Admins never require verification checks
+    if (user.role === 'admin') {
+      return res.json({
+        success: true,
+        isVerified: true,
+        isAdmin: true
+      });
     }
 
     return res.json({
