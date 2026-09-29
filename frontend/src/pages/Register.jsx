@@ -71,8 +71,8 @@ const Register = () => {
 
     try {
       await register({ ...formData, confirmPassword: formData.password });
-      setSuccess('Registration successful! Please check your email to verify your account. Redirecting to login...');
-      setTimeout(() => navigate('/login'), 5000);
+      setSuccess('Registration successful! A 6-digit verification code has been sent to your email. Redirecting to sign in...');
+      setTimeout(() => navigate('/login'), 2500);
     } catch (err) {
       if (err.response?.data?.message) {
         setError(err.response.data.message);

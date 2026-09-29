@@ -13,6 +13,11 @@ const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
+// Generate 6-digit numeric OTP
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 // POST /api/auth/register — Register a new customer
 router.post('/register', async (req, res) => {
   try {
@@ -72,8 +77,8 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const verificationOtp = generateOtp();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
     const { error } = await supabase.from('users').insert({
       name: name.trim(),
@@ -82,8 +87,9 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       hostel_block: hostelBlock,
       role: 'customer',
-      verification_token: verificationToken,
-      verification_expires: verificationExpires.toISOString()
+      verification_token: verificationOtp,
+      verification_expires: verificationExpires.toISOString(),
+      email_verified: false
     });
 
     if (error) {
@@ -91,14 +97,15 @@ router.post('/register', async (req, res) => {
     }
     
     try {
-      await emailService.sendVerificationEmail(trimmedEmail, verificationToken);
+      await emailService.sendVerificationEmail(trimmedEmail, verificationOtp);
     } catch (emailErr) {
-      console.error('Failed to send verification email during registration', emailErr);
+      console.error('Failed to send verification OTP during registration', emailErr);
     }
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful! Please check your email to verify your account.'
+      message: `Registration successful! A 6-digit verification code has been sent to ${trimmedEmail}.`,
+      email: trimmedEmail
     });
 
   } catch (error) {
@@ -190,7 +197,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// PUT /api/auth/update-email — Update user email (for existing users who didn't provide one)
+// PUT /api/auth/update-email — Update user email and send 6-digit OTP
 router.put('/update-email', protect, async (req, res) => {
   try {
     const { email } = req.body;
@@ -217,15 +224,15 @@ router.put('/update-email', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email already in use by another account' });
     }
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const verificationOtp = generateOtp();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
     // Update details in database
     const { data: updatedUser, error: updateError } = await supabase
       .from('users')
       .update({ 
         email: trimmedEmail,
-        verification_token: verificationToken,
+        verification_token: verificationOtp,
         verification_expires: verificationExpires.toISOString(),
         email_verified: false
       })
@@ -238,14 +245,14 @@ router.put('/update-email', protect, async (req, res) => {
     }
 
     try {
-      await emailService.sendVerificationEmail(trimmedEmail, verificationToken);
+      await emailService.sendVerificationEmail(trimmedEmail, verificationOtp);
     } catch (emailErr) {
-      console.error('Failed to send verification email during update', emailErr);
+      console.error('Failed to send verification OTP during update', emailErr);
     }
 
     res.json({
       success: true,
-      message: 'Email updated successfully!',
+      message: `A 6-digit verification code has been sent to ${trimmedEmail}`,
       user: {
         id: updatedUser.id,
         name: updatedUser.name,
@@ -353,25 +360,18 @@ router.put('/password', protect, async (req, res) => {
       .eq('id', req.user.id)
       .single();
 
-    if (dbError) {
-      console.error('Database error in protect middleware:', dbError);
-      return res.status(500).json({ success: false, message: `Database error: ${dbError.message}` });
-    }
-    if (!dbUser) {
-      return res.status(401).json({ success: false, message: 'User not found' });
+    if (dbError || !dbUser) {
+      return res.status(500).json({ success: false, message: 'Failed to retrieve account data' });
     }
 
-    // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, dbUser.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Incorrect current password' });
+      return res.status(400).json({ success: false, message: 'Current password is incorrect' });
     }
 
-    // Hash the new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Update password in DB
     const { error: updateError } = await supabase
       .from('users')
       .update({ password: hashedPassword })
@@ -381,31 +381,56 @@ router.put('/password', protect, async (req, res) => {
       return res.status(500).json({ success: false, message: updateError.message });
     }
 
-    res.json({ success: true, message: 'Password changed successfully!' });
+    res.json({ success: true, message: 'Password updated successfully' });
 
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// POST /api/auth/verify-email
-router.post('/verify-email', async (req, res) => {
+// POST /api/auth/verify-otp & /api/auth/verify-email — Verify email using 6-digit OTP or token
+router.post(['/verify-otp', '/verify-email'], async (req, res) => {
   try {
-    const { token } = req.body;
-    if (!token) return res.status(400).json({ success: false, message: 'Token is required' });
+    const { otp, token, email, identifier } = req.body;
+    const code = (otp || token || '').toString().trim();
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, verification_expires')
-      .eq('verification_token', token)
-      .maybeSingle();
-
-    if (error || !user) {
-      return res.status(400).json({ success: false, message: 'Invalid verification token' });
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Verification code is required' });
     }
 
-    if (new Date(user.verification_expires) < new Date()) {
-      return res.status(400).json({ success: false, message: 'Verification token has expired. Please request a new one.' });
+    let query = supabase.from('users').select('id, name, role, phone, email, email_verified, hostel_block, verification_token, verification_expires');
+
+    // If email or identifier is given, match specifically
+    const lookupValue = (email || identifier || '').trim().toLowerCase();
+    if (lookupValue) {
+      if (lookupValue.includes('@')) {
+        query = query.eq('email', lookupValue);
+      } else {
+        const phoneRegex = /^(?:\+91|91)?\d{10}$/;
+        if (phoneRegex.test(lookupValue)) {
+          const tenDigit = lookupValue.slice(-10);
+          query = query.in('phone', [tenDigit, `91${tenDigit}`, `+91${tenDigit}`]);
+        } else {
+          query = query.eq('phone', lookupValue);
+        }
+      }
+    } else {
+      // Direct token match
+      query = query.eq('verification_token', code);
+    }
+
+    const { data: user, error } = await query.maybeSingle();
+
+    if (error || !user) {
+      return res.status(400).json({ success: false, message: 'Account or verification code not found' });
+    }
+
+    if (!user.verification_token || user.verification_token.trim() !== code) {
+      return res.status(400).json({ success: false, message: 'Incorrect 6-digit verification code. Please check and try again.' });
+    }
+
+    if (user.verification_expires && new Date(user.verification_expires) < new Date()) {
+      return res.status(400).json({ success: false, message: 'Verification code has expired. Please click "Resend Code".' });
     }
 
     const { data: updatedUser, error: updateError } = await supabase
@@ -423,9 +448,12 @@ router.post('/verify-email', async (req, res) => {
       return res.status(500).json({ success: false, message: updateError.message });
     }
 
+    const jwtToken = generateToken(updatedUser.id, updatedUser.role);
+
     res.json({ 
       success: true, 
       message: 'Email verified successfully!',
+      token: jwtToken,
       user: {
         id: updatedUser.id,
         name: updatedUser.name,
@@ -441,40 +469,66 @@ router.post('/verify-email', async (req, res) => {
   }
 });
 
-// POST /api/auth/resend-verification
-router.post('/resend-verification', protect, async (req, res) => {
+// POST /api/auth/resend-verification — Resend 6-digit OTP (Supports both logged-in and public requests)
+router.post('/resend-verification', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, identifier } = req.body;
+    let userId = null;
 
-    const { data: currentUser, error } = await supabase
-      .from('users')
-      .select('id, email, email_verified')
-      .eq('id', req.user.id)
-      .single();
-
-    if (error) {
-      console.error('Database error:', error);
-      return res.status(500).json({ success: false, message: `Database error: ${error.message}` });
+    // Check if user has an auth token in header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+        userId = decoded.id;
+      } catch (err) {
+        // Continue with public lookup
+      }
     }
-    if (!currentUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+
+    let query = supabase.from('users').select('id, name, email, email_verified');
+
+    if (userId) {
+      query = query.eq('id', userId);
+    } else {
+      const lookup = (email || identifier || '').trim().toLowerCase();
+      if (!lookup) {
+        return res.status(400).json({ success: false, message: 'Email address or identifier is required' });
+      }
+      if (lookup.includes('@')) {
+        query = query.eq('email', lookup);
+      } else {
+        const phoneRegex = /^(?:\+91|91)?\d{10}$/;
+        if (phoneRegex.test(lookup)) {
+          const tenDigit = lookup.slice(-10);
+          query = query.in('phone', [tenDigit, `91${tenDigit}`, `+91${tenDigit}`]);
+        } else {
+          query = query.eq('phone', lookup);
+        }
+      }
+    }
+
+    const { data: currentUser, error } = await query.maybeSingle();
+
+    if (error || !currentUser) {
+      return res.status(404).json({ success: false, message: 'User account not found' });
     }
 
     let targetEmail = currentUser.email;
 
-    if (email && email.trim()) {
+    // If new email is supplied in body
+    if (email && email.trim() && email.trim().toLowerCase() !== currentUser.email) {
       const trimmedEmail = email.trim().toLowerCase();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(trimmedEmail)) {
         return res.status(400).json({ success: false, message: 'Please enter a valid email address' });
       }
 
-      // Check if email belongs to another user
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
         .eq('email', trimmedEmail)
-        .neq('id', req.user.id)
+        .neq('id', currentUser.id)
         .maybeSingle();
 
       if (existingUser) {
@@ -485,25 +539,25 @@ router.post('/resend-verification', protect, async (req, res) => {
     }
 
     if (!targetEmail) {
-      return res.status(400).json({ success: false, message: 'No email address provided' });
+      return res.status(400).json({ success: false, message: 'No email address registered on this account' });
     }
 
     if (currentUser.email_verified && targetEmail === currentUser.email) {
       return res.status(400).json({ success: false, message: 'Email is already verified' });
     }
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const verificationOtp = generateOtp();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
     const { data: updatedUser, error: updateError } = await supabase
       .from('users')
       .update({ 
         email: targetEmail,
         email_verified: false,
-        verification_token: verificationToken,
+        verification_token: verificationOtp,
         verification_expires: verificationExpires.toISOString()
       })
-      .eq('id', req.user.id)
+      .eq('id', currentUser.id)
       .select('id, name, role, phone, email, email_verified, hostel_block')
       .single();
 
@@ -512,10 +566,11 @@ router.post('/resend-verification', protect, async (req, res) => {
     }
 
     try {
-      await emailService.sendVerificationEmail(targetEmail, verificationToken);
+      await emailService.sendVerificationEmail(targetEmail, verificationOtp);
       res.json({ 
         success: true, 
-        message: `Verification email sent successfully to ${targetEmail}`,
+        message: `Verification code sent to ${targetEmail}`,
+        email: targetEmail,
         user: {
           id: updatedUser.id,
           name: updatedUser.name,
@@ -527,7 +582,7 @@ router.post('/resend-verification', protect, async (req, res) => {
         }
       });
     } catch (emailErr) {
-      console.error('Failed to resend verification email', emailErr);
+      console.error('Failed to send verification OTP email', emailErr);
       res.status(500).json({ success: false, message: 'Failed to send email. Please try again later.' });
     }
   } catch (error) {
@@ -550,7 +605,13 @@ router.post('/check-verification', async (req, res) => {
     if (isEmail) {
       query = query.eq('email', value);
     } else {
-      query = query.eq('phone', value);
+      const phoneRegex = /^(?:\+91|91)?\d{10}$/;
+      if (phoneRegex.test(value)) {
+        const tenDigit = value.slice(-10);
+        query = query.in('phone', [tenDigit, `91${tenDigit}`, `+91${tenDigit}`]);
+      } else {
+        query = query.eq('phone', value);
+      }
     }
 
     const { data: user, error } = await query.maybeSingle();
@@ -577,67 +638,78 @@ router.post('/check-verification', async (req, res) => {
   }
 });
 
-// POST /api/auth/forgot-password
+// POST /api/auth/forgot-password — Request 6-digit Password Reset OTP
 router.post('/forgot-password', async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
+    const { email, identifier } = req.body;
+    const lookup = (email || identifier || '').trim().toLowerCase();
+
+    if (!lookup) {
+      return res.status(400).json({ success: false, message: 'Please enter your registered email address' });
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
-
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, email, email_verified')
-      .eq('email', trimmedEmail)
-      .maybeSingle();
-
-    if (error || !user) {
-      return res.json({ success: true, message: 'If an account exists with a verified email, a password reset link has been sent.' });
+    let query = supabase.from('users').select('id, name, email, email_verified');
+    if (lookup.includes('@')) {
+      query = query.eq('email', lookup);
+    } else {
+      const phoneRegex = /^(?:\+91|91)?\d{10}$/;
+      if (phoneRegex.test(lookup)) {
+        const tenDigit = lookup.slice(-10);
+        query = query.in('phone', [tenDigit, `91${tenDigit}`, `+91${tenDigit}`]);
+      } else {
+        query = query.eq('phone', lookup);
+      }
     }
 
-    if (!user.email_verified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password reset is only available for accounts with a verified email address. Please verify your email first.'
+    const { data: user, error } = await query.maybeSingle();
+
+    if (error || !user || !user.email) {
+      return res.json({ 
+        success: true, 
+        message: 'If an account exists with this email, a 6-digit OTP has been sent.' 
       });
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const resetOtp = generateOtp();
+    const resetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
     const { error: updateError } = await supabase
       .from('users')
       .update({ 
-        reset_token: resetToken,
+        reset_token: resetOtp,
         reset_expires: resetExpires.toISOString()
       })
       .eq('id', user.id);
 
     if (!updateError) {
       try {
-        await emailService.sendPasswordResetEmail(user.email, resetToken);
+        await emailService.sendPasswordResetEmail(user.email, resetOtp);
       } catch (emailErr) {
-        console.error('Failed to send password reset email', emailErr);
+        console.error('Failed to send password reset OTP email', emailErr);
       }
     }
 
-    res.json({ success: true, message: 'If an account exists with a verified email, a password reset link has been sent.' });
+    res.json({ 
+      success: true, 
+      message: `A 6-digit password reset OTP has been sent to ${user.email}`,
+      email: user.email
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// POST /api/auth/reset-password
+// POST /api/auth/reset-password — Reset password using 6-digit OTP
 router.post('/reset-password', async (req, res) => {
   try {
-    const { token, newPassword, confirmPassword } = req.body;
-    if (!token || !newPassword || !confirmPassword) {
-      return res.status(400).json({ success: false, message: 'All fields are required' });
+    const { email, identifier, otp, token, newPassword, confirmPassword } = req.body;
+    const code = (otp || token || '').toString().trim();
+
+    if (!code || !newPassword) {
+      return res.status(400).json({ success: false, message: 'OTP code and new password are required' });
     }
 
-    if (newPassword !== confirmPassword) {
+    if (confirmPassword && newPassword !== confirmPassword) {
       return res.status(400).json({ success: false, message: 'Passwords do not match' });
     }
     
@@ -645,18 +717,37 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
     }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, reset_expires')
-      .eq('reset_token', token)
-      .maybeSingle();
+    let query = supabase.from('users').select('id, name, email, reset_token, reset_expires');
+    const lookup = (email || identifier || '').trim().toLowerCase();
 
-    if (error || !user) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
+    if (lookup) {
+      if (lookup.includes('@')) {
+        query = query.eq('email', lookup);
+      } else {
+        const phoneRegex = /^(?:\+91|91)?\d{10}$/;
+        if (phoneRegex.test(lookup)) {
+          const tenDigit = lookup.slice(-10);
+          query = query.in('phone', [tenDigit, `91${tenDigit}`, `+91${tenDigit}`]);
+        } else {
+          query = query.eq('phone', lookup);
+        }
+      }
+    } else {
+      query = query.eq('reset_token', code);
     }
 
-    if (new Date(user.reset_expires) < new Date()) {
-      return res.status(400).json({ success: false, message: 'Reset token has expired. Please request a new one.' });
+    const { data: user, error } = await query.maybeSingle();
+
+    if (error || !user) {
+      return res.status(400).json({ success: false, message: 'Invalid reset code or account not found' });
+    }
+
+    if (!user.reset_token || user.reset_token.trim() !== code) {
+      return res.status(400).json({ success: false, message: 'Invalid 6-digit OTP code. Please check your email and try again.' });
+    }
+
+    if (user.reset_expires && new Date(user.reset_expires) < new Date()) {
+      return res.status(400).json({ success: false, message: 'Password reset OTP has expired. Please request a new one.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -675,7 +766,10 @@ router.post('/reset-password', async (req, res) => {
       return res.status(500).json({ success: false, message: updateError.message });
     }
 
-    res.json({ success: true, message: 'Password has been reset successfully. You can now login.' });
+    res.json({ 
+      success: true, 
+      message: 'Password reset successfully! You can now sign in with your new password.' 
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -47,38 +47,54 @@ const sendEmail = async (toEmail, subject, htmlContent) => {
   }
 };
 
-const sendVerificationEmail = async (toEmail, token) => {
-  const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${token}`;
-
-  const subject = 'Verify your email address - AparnaCanteen';
+const sendVerificationEmail = async (toEmail, otp) => {
+  const subject = `${otp} is your verification code - AparnaCanteen`;
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h2 style="color: #CC9149;">Welcome to AparnaCanteen!</h2>
-      <p style="color: #333; font-size: 16px;">Thank you for providing your email address. Please verify it to continue using the application securely.</p>
-      <p style="color: #333; font-size: 16px;">Click the link below to verify your email (this link expires in 24 hours):</p>
-      <div style="margin: 30px 0; text-align: center;">
-        <a href="${verifyUrl}" style="display: inline-block; padding: 12px 24px; background-color: #CC9149; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Verify Email</a>
+    <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #fed7aa; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #ea580c; margin: 0; font-size: 24px;">AparnaDevi Canteen</h2>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Hostel Dining & Online Ordering</p>
       </div>
-      <p style="color: #666; font-size: 14px;">If you did not request this, you can safely ignore this email.</p>
+      <div style="background-color: #fff7ed; border-radius: 10px; padding: 20px; border: 1px solid #ffedd5; text-align: center; margin-bottom: 20px;">
+        <p style="color: #374151; font-size: 15px; margin: 0 0 14px 0;">Use the 6-digit verification code below to verify your email address:</p>
+        <div style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #ea580c; background-color: #ffffff; padding: 14px 24px; border-radius: 8px; border: 2px dashed #f97316; display: inline-block; font-family: 'Courier New', monospace;">
+          ${otp}
+        </div>
+        <p style="color: #9a3412; font-size: 13px; margin: 14px 0 0 0; font-weight: 500;">⏱️ Valid for 10 minutes</p>
+      </div>
+      <p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin: 0 0 8px 0;">
+        Enter this code directly in the canteen app to complete your email verification.
+      </p>
+      <p style="color: #9ca3af; font-size: 12px; margin: 16px 0 0 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+        If you did not request this code, please ignore this email or contact support at aparnadevicanteen@gmail.com.
+      </p>
     </div>
   `;
 
   return sendEmail(toEmail, subject, html);
 };
 
-const sendPasswordResetEmail = async (toEmail, token) => {
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${token}`;
-
-  const subject = 'Password Reset Request - AparnaCanteen';
+const sendPasswordResetEmail = async (toEmail, otp) => {
+  const subject = `${otp} is your password reset OTP - AparnaCanteen`;
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h2 style="color: #CC9149;">Password Reset Request</h2>
-      <p style="color: #333; font-size: 16px;">We received a request to reset your password for your AparnaCanteen account.</p>
-      <p style="color: #333; font-size: 16px;">Click the button below to create a new password (this link expires in 1 hour):</p>
-      <div style="margin: 30px 0; text-align: center;">
-        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #CC9149; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Reset Password</a>
+    <div style="font-family: Arial, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; border: 1px solid #fed7aa; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #ea580c; margin: 0; font-size: 24px;">AparnaDevi Canteen</h2>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Password Reset Request</p>
       </div>
-      <p style="color: #666; font-size: 14px;">If you did not request this, you can safely ignore this email. Your password will remain unchanged.</p>
+      <div style="background-color: #fff7ed; border-radius: 10px; padding: 20px; border: 1px solid #ffedd5; text-align: center; margin-bottom: 20px;">
+        <p style="color: #374151; font-size: 15px; margin: 0 0 14px 0;">Use the 6-digit OTP code below to set a new password:</p>
+        <div style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #ea580c; background-color: #ffffff; padding: 14px 24px; border-radius: 8px; border: 2px dashed #f97316; display: inline-block; font-family: 'Courier New', monospace;">
+          ${otp}
+        </div>
+        <p style="color: #9a3412; font-size: 13px; margin: 14px 0 0 0; font-weight: 500;">⏱️ Valid for 15 minutes</p>
+      </div>
+      <p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin: 0 0 8px 0;">
+        Enter this code on the password reset screen along with your new password.
+      </p>
+      <p style="color: #9ca3af; font-size: 12px; margin: 16px 0 0 0; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+        If you did not request a password reset, you can safely ignore this email. Your current password will remain unchanged.
+      </p>
     </div>
   `;
 

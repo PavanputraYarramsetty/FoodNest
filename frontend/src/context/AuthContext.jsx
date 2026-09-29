@@ -67,7 +67,6 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // If we're already on login/register, don't spam
           if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
             toast.error('Session expired. Please log in again.', { id: 'session-expired' });
             logout();
@@ -88,20 +87,31 @@ export const AuthProvider = ({ children }) => {
   const updateEmail = useCallback(async (email) => {
     const res = await axios.put('/auth/update-email', { email });
     const updatedUser = res.data.user;
-    updateUser(updatedUser);
-    return updatedUser;
+    if (updatedUser) {
+      updateUser(updatedUser);
+    }
+    return res.data;
   }, [updateUser]);
 
-  const resendVerification = useCallback(async (email) => {
-    const res = await axios.post('/auth/resend-verification', { email });
+  const resendVerification = useCallback(async (email, identifier) => {
+    const res = await axios.post('/auth/resend-verification', { email, identifier });
     if (res.data?.user) {
       updateUser(res.data.user);
     }
     return res.data;
   }, [updateUser]);
 
-  const verifyEmail = useCallback(async (token) => {
-    const res = await axios.post('/auth/verify-email', { token });
+  const verifyEmail = useCallback(async (tokenOrOtp, email = null) => {
+    const res = await axios.post('/auth/verify-otp', { 
+      otp: tokenOrOtp, 
+      token: tokenOrOtp,
+      email: email || user?.email 
+    });
+    if (res.data?.token) {
+      setToken(res.data.token);
+      localStorage.setItem('foodnest_token', res.data.token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+    }
     if (res.data?.user) {
       updateUser(res.data.user);
     } else if (user) {
@@ -124,8 +134,13 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   }, []);
 
-  const resetPassword = useCallback(async (token, newPassword, confirmPassword) => {
-    const res = await axios.post('/auth/reset-password', { token, newPassword, confirmPassword });
+  const resetPassword = useCallback(async (tokenOrOtp, newPassword, confirmPassword, email = null) => {
+    // Support object or arguments
+    const payload = typeof tokenOrOtp === 'object' && tokenOrOtp !== null
+      ? tokenOrOtp
+      : { otp: tokenOrOtp, token: tokenOrOtp, newPassword, confirmPassword, email };
+
+    const res = await axios.post('/auth/reset-password', payload);
     return res.data;
   }, []);
 
