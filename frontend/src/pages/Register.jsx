@@ -18,7 +18,7 @@ const Register = () => {
     password: ''
   });
   const [otp, setOtp] = useState('');
-  const [showOtpSection, setShowOtpSection] = useState(false);
+  const [registrationStep, setRegistrationStep] = useState('form'); // 'form' | 'otp' | 'success'
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  const { register, verifyEmail, resendVerification } = useAuth();
+  const { register, resendVerification } = useAuth();
   const navigate = useNavigate();
   const { transition } = useMotionSafe();
   const cardRef = useRef(null);
@@ -48,19 +48,19 @@ const Register = () => {
     }
   }, [countdown]);
 
-  // Focus OTP input when OTP section becomes active
+  // Focus OTP input when OTP step becomes active
   useEffect(() => {
-    if (showOtpSection && otpInputRef.current) {
-      otpInputRef.current.focus();
+    if (registrationStep === 'otp' && otpInputRef.current) {
+      setTimeout(() => otpInputRef.current?.focus(), 350);
     }
-  }, [showOtpSection]);
+  }, [registrationStep]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
   };
 
-  // Step 1: Submit Registration Form (triggers OTP)
+  // Step 1: Submit Registration Form → Send OTP → Stay on this page
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -87,8 +87,9 @@ const Register = () => {
 
     try {
       await register({ ...formData, confirmPassword: formData.password });
-      setSuccess(`A 6-digit verification code has been sent to ${formData.email.trim()}. Please enter it below.`);
-      setShowOtpSection(true);
+      // ✅ Stay on same page — show OTP entry below
+      setSuccess(`A 6-digit verification code has been sent to ${formData.email.trim()}. Enter it below to verify your email.`);
+      setRegistrationStep('otp');
       setCountdown(30);
     } catch (err) {
       if (err.response?.data?.message) {
@@ -103,7 +104,7 @@ const Register = () => {
     }
   };
 
-  // Step 2: Verify OTP
+  // Step 2: Verify OTP → Show success → Redirect to Login
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError('');
@@ -117,11 +118,24 @@ const Register = () => {
     setVerifyLoading(true);
 
     try {
-      await verifyEmail(cleanOtp, formData.email.trim());
-      setSuccess('🎉 Verification successful! Your account is active. Redirecting to Sign In...');
+      // Call verify-otp API directly (without going through AuthContext.verifyEmail
+      // which sets token/user state — we DON'T want auto-login here)
+      const axios = (await import('axios')).default;
+      await axios.post('/auth/verify-otp', {
+        otp: cleanOtp,
+        token: cleanOtp,
+        email: formData.email.trim()
+      });
+
+      // ✅ Show success state — do NOT auto-login
+      setError('');
+      setSuccess('');
+      setRegistrationStep('success');
+
+      // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login', { replace: true });
-      }, 2000);
+      }, 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or expired 6-digit code. Please check your email and try again.');
     } finally {
@@ -143,6 +157,16 @@ const Register = () => {
       setVerifyLoading(false);
     }
   };
+
+  // Allow editing details (go back to form step)
+  const handleEditDetails = () => {
+    setRegistrationStep('form');
+    setOtp('');
+    setError('');
+    setSuccess('');
+  };
+
+  const isFormLocked = registrationStep !== 'form';
 
   return (
     <div className="auth-page" style={{ background: 'transparent' }}>
@@ -208,213 +232,332 @@ const Register = () => {
               >
                 <img src="/canteen-logo.png" alt="AparnaDevi Logo" className="auth-logo-img" />
               </motion.div>
-              <h1 className="auth-title">Create Account</h1>
+              <h1 className="auth-title">
+                {registrationStep === 'success' ? 'Account Verified!' : 'Create Account'}
+              </h1>
             </Link>
-            <p className="auth-subtitle">Join AparnaCanteen today</p>
+            <p className="auth-subtitle">
+              {registrationStep === 'form' && 'Join AparnaCanteen today'}
+              {registrationStep === 'otp' && 'Almost there — verify your email'}
+              {registrationStep === 'success' && 'You\'re all set to order!'}
+            </p>
           </div>
 
-          <AlertBanner type="error" show={!!error}>
-            <AlertCircle size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
-            {error}
-          </AlertBanner>
-
-          <AlertBanner type="success" show={!!success}>
-            <CheckCircle size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
-            {success}
-          </AlertBanner>
-
-          <form onSubmit={handleSubmit}>
-            <div className="auth-row-2col">
-              <div className="form-group">
-                <label className="form-label" htmlFor="register-name">Full Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  className="form-input"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  disabled={showOtpSection}
-                  id="register-name"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="register-phone">Phone Number *</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  className="form-input"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  required
-                  disabled={showOtpSection}
-                  id="register-phone"
-                />
-              </div>
-            </div>
-
-            <div className="auth-row-2col">
-              <div className="form-group">
-                <label className="form-label" htmlFor="register-email">Email Address *</label>
-                <input
-                  type="email"
-                  name="email"
-                  className="form-input"
-                  placeholder="Enter your email address"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  disabled={showOtpSection}
-                  id="register-email"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="register-block">Hostel Block *</label>
-                <select
-                  name="hostelBlock"
-                  className="form-input"
-                  value={formData.hostelBlock}
-                  onChange={handleChange}
-                  required
-                  disabled={showOtpSection}
-                  id="register-block"
-                >
-                  <option value="">Select Block</option>
-                  <option value="F Block (Old)">F Block (Old)</option>
-                  <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="register-password">Password *</label>
-              <div className="auth-input-wrapper">
-                <Lock size={18} className="auth-input-icon" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  className="form-input has-toggle"
-                  placeholder="Min. 6 characters"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  disabled={showOtpSection}
-                  minLength={6}
-                  id="register-password"
-                />
-                {!showOtpSection && (
-                  <button
-                    type="button"
-                    className="auth-toggle-password"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    aria-pressed={showPassword}
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {!showOtpSection ? (
-              <MotionButton
-                type="submit"
-                className="btn btn-primary btn-lg auth-submit-btn"
-                style={{ width: '100%' }}
-                disabled={loading}
-                id="register-submit"
-              >
-                {loading ? <span className="btn-spinner" aria-hidden="true" /> : 'Create Account'}
-              </MotionButton>
-            ) : null}
-          </form>
-
-          {/* Inline OTP Section directly below details */}
-          {showOtpSection && (
+          {/* ─── SUCCESS STATE ─── */}
+          {registrationStep === 'success' ? (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
               style={{
-                marginTop: '1.25rem',
-                padding: '1.25rem',
-                borderRadius: '12px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(249, 115, 22, 0.35)',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)'
+                textAlign: 'center',
+                padding: '2rem 1.5rem',
               }}
             >
-              <form onSubmit={handleVerifyOtp}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                  <label className="form-label" htmlFor="register-otp" style={{ margin: 0, fontWeight: 700, color: 'var(--primary-400)', fontSize: '0.9rem' }}>
-                    Enter 6-Digit Code sent to {formData.email}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => { setShowOtpSection(false); setError(''); setSuccess(''); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.78rem', cursor: 'pointer', padding: 0 }}
-                  >
-                    Edit Details
-                  </button>
-                </div>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 1.25rem',
+                  border: '2px solid rgba(34, 197, 94, 0.4)',
+                }}
+              >
+                <CheckCircle size={40} style={{ color: '#22c55e' }} />
+              </motion.div>
 
-                <div className="auth-input-wrapper" style={{ marginBottom: '0.85rem' }}>
-                  <KeyRound size={18} className="auth-input-icon" />
-                  <input
-                    ref={otpInputRef}
-                    type="text"
-                    id="register-otp"
-                    name="otp"
-                    className="form-input"
-                    placeholder="e.g. 123456"
-                    value={otp}
-                    onChange={(e) => {
-                      setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
-                      setError('');
-                    }}
-                    maxLength={6}
-                    required
-                    style={{ letterSpacing: '6px', fontWeight: 700, fontSize: '1.2rem', textAlign: 'center' }}
-                  />
-                </div>
+              <h2 style={{
+                fontSize: '1.35rem',
+                fontWeight: 800,
+                color: '#22c55e',
+                marginBottom: '0.5rem',
+              }}>
+                🎉 Email Verified Successfully!
+              </h2>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', fontSize: '0.82rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Didn't receive code?</span>
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={countdown > 0 || verifyLoading}
-                    style={{
-                      background: 'none', border: 'none',
-                      color: countdown > 0 ? 'var(--text-muted)' : 'var(--primary-400)',
-                      cursor: countdown > 0 ? 'default' : 'pointer',
-                      fontWeight: 600
-                    }}
-                  >
-                    {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
-                  </button>
-                </div>
+              <p style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.92rem',
+                marginBottom: '1.5rem',
+                lineHeight: 1.5,
+              }}>
+                Your account is now active.<br />
+                Redirecting to <strong>Sign In</strong> page in a few seconds...
+              </p>
 
-                <MotionButton
-                  type="submit"
-                  className="btn btn-primary btn-lg auth-submit-btn"
-                  disabled={verifyLoading}
-                  style={{ width: '100%', background: 'linear-gradient(135deg, #ea580c, #f97316)' }}
-                  id="verify-otp-submit"
-                >
-                  {verifyLoading ? <span className="btn-spinner" aria-hidden="true" /> : 'Verify OTP & Complete'}
-                </MotionButton>
-              </form>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+              }}>
+                <span className="btn-spinner" aria-hidden="true" style={{ width: '18px', height: '18px' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Redirecting to login...</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/login', { replace: true })}
+                style={{
+                  marginTop: '1.25rem',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary-400)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  textDecoration: 'underline',
+                }}
+              >
+                Go to Sign In now →
+              </button>
             </motion.div>
-          )}
+          ) : (
+            <>
+              {/* ─── ERROR / SUCCESS BANNERS ─── */}
+              <AlertBanner type="error" show={!!error}>
+                <AlertCircle size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+                {error}
+              </AlertBanner>
 
-          <div className="auth-footer" style={{ marginTop: '1.25rem' }}>
-            Already have an account? <Link to="/login" replace>Sign In</Link>
-          </div>
+              <AlertBanner type="success" show={!!success}>
+                <CheckCircle size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+                {success}
+              </AlertBanner>
+
+              {/* ─── REGISTRATION FORM ─── */}
+              <form onSubmit={handleSubmit}>
+                <div className="auth-row-2col">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="register-name">Full Name *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      className="form-input"
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      disabled={isFormLocked}
+                      id="register-name"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="register-phone">Phone Number *</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      className="form-input"
+                      placeholder="Enter your phone number"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                      disabled={isFormLocked}
+                      id="register-phone"
+                    />
+                  </div>
+                </div>
+
+                <div className="auth-row-2col">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="register-email">Email Address *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      className="form-input"
+                      placeholder="Enter your email address"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      disabled={isFormLocked}
+                      id="register-email"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="register-block">Hostel Block *</label>
+                    <select
+                      name="hostelBlock"
+                      className="form-input"
+                      value={formData.hostelBlock}
+                      onChange={handleChange}
+                      required
+                      disabled={isFormLocked}
+                      id="register-block"
+                    >
+                      <option value="">Select Block</option>
+                      <option value="F Block (Old)">F Block (Old)</option>
+                      <option value="Others(A, B, C, D, F)">Others(A, B, C, D, F)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="register-password">Password *</label>
+                  <div className="auth-input-wrapper">
+                    <Lock size={18} className="auth-input-icon" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      className="form-input has-toggle"
+                      placeholder="Min. 6 characters"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      disabled={isFormLocked}
+                      minLength={6}
+                      id="register-password"
+                    />
+                    {!isFormLocked && (
+                      <button
+                        type="button"
+                        className="auth-toggle-password"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {registrationStep === 'form' && (
+                  <MotionButton
+                    type="submit"
+                    className="btn btn-primary btn-lg auth-submit-btn"
+                    style={{ width: '100%' }}
+                    disabled={loading}
+                    id="register-submit"
+                  >
+                    {loading ? <span className="btn-spinner" aria-hidden="true" /> : 'Create Account'}
+                  </MotionButton>
+                )}
+              </form>
+
+              {/* ─── INLINE OTP SECTION (appears below Create Account) ─── */}
+              {registrationStep === 'otp' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                  style={{
+                    marginTop: '1.25rem',
+                    padding: '1.35rem',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.06), rgba(234, 88, 12, 0.03))',
+                    border: '1.5px solid rgba(249, 115, 22, 0.3)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                  }}
+                >
+                  {/* OTP Header */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '0.75rem',
+                    paddingBottom: '0.6rem',
+                    borderBottom: '1px solid rgba(249, 115, 22, 0.15)',
+                  }}>
+                    <ShieldCheck size={20} style={{ color: 'var(--primary-400)' }} />
+                    <span style={{
+                      fontWeight: 700,
+                      color: 'var(--primary-400)',
+                      fontSize: '0.95rem',
+                    }}>
+                      Email Verification
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleVerifyOtp}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <label className="form-label" htmlFor="register-otp" style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
+                        🔢 Enter 6-Digit Code sent to <strong style={{ color: 'var(--primary-400)' }}>{formData.email}</strong>
+                      </label>
+                    </div>
+
+                    <div className="auth-input-wrapper" style={{ marginBottom: '0.85rem' }}>
+                      <KeyRound size={18} className="auth-input-icon" />
+                      <input
+                        ref={otpInputRef}
+                        type="text"
+                        id="register-otp"
+                        name="otp"
+                        className="form-input"
+                        placeholder="e.g. 123456"
+                        value={otp}
+                        onChange={(e) => {
+                          setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                          setError('');
+                        }}
+                        maxLength={6}
+                        required
+                        style={{ letterSpacing: '8px', fontWeight: 700, fontSize: '1.3rem', textAlign: 'center' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', fontSize: '0.82rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleEditDetails}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          fontSize: '0.82rem',
+                          padding: 0,
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        ← Edit Details
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={countdown > 0 || verifyLoading}
+                        style={{
+                          background: 'none', border: 'none',
+                          color: countdown > 0 ? 'var(--text-muted)' : 'var(--primary-400)',
+                          cursor: countdown > 0 ? 'default' : 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.82rem',
+                        }}
+                      >
+                        {countdown > 0 ? `Resend in ${countdown}s` : '🔄 Resend Code'}
+                      </button>
+                    </div>
+
+                    <MotionButton
+                      type="submit"
+                      className="btn btn-primary btn-lg auth-submit-btn"
+                      disabled={verifyLoading || otp.length < 6}
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #ea580c, #f97316)',
+                        opacity: otp.length < 6 ? 0.7 : 1,
+                      }}
+                      id="verify-otp-submit"
+                    >
+                      {verifyLoading ? <span className="btn-spinner" aria-hidden="true" /> : '✓ Verify OTP & Complete'}
+                    </MotionButton>
+                  </form>
+                </motion.div>
+              )}
+
+              <div className="auth-footer" style={{ marginTop: '1.25rem' }}>
+                Already have an account? <Link to="/login" replace>Sign In</Link>
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
     </div>
@@ -422,3 +565,4 @@ const Register = () => {
 };
 
 export default Register;
+
