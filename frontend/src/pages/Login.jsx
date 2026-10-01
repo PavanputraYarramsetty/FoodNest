@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { Phone, Mail, Lock, AlertCircle, Eye, EyeOff, LogOut, KeyRound, CheckCircle } from 'lucide-react';
+import { Phone, Mail, Lock, AlertCircle, Eye, EyeOff, LogOut, KeyRound, CheckCircle, PhoneCall } from 'lucide-react';
 import MotionButton from '../components/ui/MotionButton';
 import AlertBanner from '../components/ui/AlertBanner';
 import AnimatedModal from '../components/ui/AnimatedModal';
@@ -284,7 +284,7 @@ const Login = () => {
                   id="login-identifier"
                   name="identifier"
                   className="form-input"
-                  placeholder="name@example.com or 9876543210"
+                  placeholder="Enter email or mobile number"
                   value={formData.identifier}
                   onChange={handleChange}
                   autoComplete="username"
@@ -343,6 +343,122 @@ const Login = () => {
             )}
             <div>
               Don't have an account? <Link to="/register" replace>Sign Up</Link>
+            </div>
+
+            <div
+              className="auth-contact-section"
+              style={{
+                marginTop: '1.25rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}
+            >
+              {/* Canteen Manager */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem 0.75rem',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '10px',
+                  gap: '0.5rem',
+                }}
+              >
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                  Canteen Manager
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'monospace', fontWeight: 500 }}>
+                    9603649488
+                  </span>
+                  <a
+                    href="tel:9603649488"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.28rem 0.65rem',
+                      borderRadius: '20px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      color: '#ffffff',
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.28)',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.45)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(249, 115, 22, 0.28)';
+                    }}
+                  >
+                    <PhoneCall size={11} />
+                    <span>Call</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Accounts Support Team */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem 0.75rem',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: '10px',
+                  gap: '0.5rem',
+                }}
+              >
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                  Accounts Support Team
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'monospace', fontWeight: 500 }}>
+                    9392049485
+                  </span>
+                  <a
+                    href="tel:9392049485"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.28rem 0.65rem',
+                      borderRadius: '20px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      color: '#ffffff',
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.28)',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.45)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(249, 115, 22, 0.28)';
+                    }}
+                  >
+                    <PhoneCall size={11} />
+                    <span>Call</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
