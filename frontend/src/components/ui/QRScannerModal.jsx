@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { Scan, X, Camera, Upload, CheckCircle2, AlertCircle, RefreshCw, ShieldAlert, Check, FlipHorizontal } from 'lucide-react';
+import { Scan, X, Camera, Upload, CheckCircle2, AlertCircle, RefreshCw, ShieldAlert, Check } from 'lucide-react';
 import AnimatedModal from './AnimatedModal';
 import MotionButton from './MotionButton';
 import toast from 'react-hot-toast';
@@ -8,15 +8,15 @@ import toast from 'react-hot-toast';
 const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
   const [activeTab, setActiveTab] = useState('camera'); // 'camera' | 'file'
   const [cameraError, setCameraError] = useState('');
-  const [cameraMode, setCameraMode] = useState('environment'); // 'environment' (Back camera) | 'user' (Front camera)
   const [cameras, setCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (open && activeTab === 'camera') {
-      initAndStartCamera(cameraMode);
+      initAndStartCamera();
     } else {
       stopCamera();
     }
@@ -33,21 +33,19 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
         setCameraError('Camera API is not supported by your browser or environment. Please use the Upload QR Image tab.');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: cameraMode } 
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       // Stop temporary stream track so html5-qrcode can take over
       stream.getTracks().forEach(track => track.stop());
       toast.success('Camera permission granted!');
-      initAndStartCamera(cameraMode);
+      initAndStartCamera();
     } catch (err) {
       console.error('Direct camera request error:', err);
       const errStr = String(err);
-      let msg = 'Camera access was not granted or no camera device was found.';
+      let msg = 'Camera access was not granted or no webcam device was found.';
       if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
-        msg = 'Camera permission was blocked. Click the 🔒 (Lock) icon in your browser address bar and select "Allow" for Camera.';
+        msg = 'Camera permission was blocked. Click the 🔒 (Lock) icon next to localhost:5173 in Chrome address bar and select "Allow" for Camera.';
       } else if (errStr.includes('NotFoundError') || errStr.includes('Requested device not found')) {
-        msg = 'No camera device was detected on your device. You can use the "Upload QR Image" tab below to scan QR codes instantly.';
+        msg = 'No webcam or camera device was detected on your computer. You can use the "Upload QR Image" tab below to scan QR codes instantly.';
       }
       setCameraError(msg);
       setIsScanning(false);
@@ -70,7 +68,7 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
     }
   };
 
-  const initAndStartCamera = async (facing = 'environment') => {
+  const initAndStartCamera = async (overrideCamId = null) => {
     setCameraError('');
     setIsScanning(true);
 
@@ -81,55 +79,46 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
       const html5QrCode = new Html5Qrcode(scannerId);
       html5QrCodeRef.current = html5QrCode;
 
-      const config = { 
-        fps: 15, 
-        qrbox: { width: 240, height: 240 },
-        aspectRatio: 1.0
-      };
+      const config = { fps: 10, qrbox: { width: 220, height: 220 } };
 
-      // Discover available cameras
-      try {
-        const devices = await Html5Qrcode.getCameras();
-        if (devices && devices.length > 0) {
-          setCameras(devices);
+      // 1. Discover available cameras
+      let devices = cameras;
+      if (devices.length === 0) {
+        try {
+          devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            setCameras(devices);
+          }
+        } catch (e) {
+          console.warn('Could not list cameras:', e);
         }
-      } catch (e) {
-        console.warn('Could not list cameras:', e);
       }
 
-      // Try chosen facing mode (default: 'environment' for Back Camera)
-      try {
+      const camToUse = overrideCamId || selectedCameraId || (devices.length > 0 ? devices[0].id : null);
+
+      if (camToUse) {
         await html5QrCode.start(
-          { facingMode: facing },
+          camToUse,
           config,
           (decodedText) => handleSuccess(decodedText),
           () => {}
         );
-      } catch (modeErr) {
-        console.warn(`Could not start with facingMode: ${facing}, falling back to alternative`, modeErr);
-        
-        // If back camera failed (e.g. laptop webcam only has user/front), try the other facing mode
-        const fallbackMode = facing === 'environment' ? 'user' : 'environment';
+      } else {
+        // Fallback constraint attempts
         try {
           await html5QrCode.start(
-            { facingMode: fallbackMode },
+            { facingMode: 'user' },
             config,
             (decodedText) => handleSuccess(decodedText),
             () => {}
           );
-        } catch (fallbackErr) {
-          // Last resort: if devices exist, use device[0]
-          const devices = await Html5Qrcode.getCameras().catch(() => []);
-          if (devices && devices.length > 0) {
-            await html5QrCode.start(
-              devices[0].id,
-              config,
-              (decodedText) => handleSuccess(decodedText),
-              () => {}
-            );
-          } else {
-            throw fallbackErr;
-          }
+        } catch (errUser) {
+          await html5QrCode.start(
+            { facingMode: 'environment' },
+            config,
+            (decodedText) => handleSuccess(decodedText),
+            () => {}
+          );
         }
       }
     } catch (err) {
@@ -139,16 +128,17 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
       if (errStr.includes('NotAllowedError') || errStr.includes('Permission denied')) {
         errMsg = 'Camera permission was blocked by your browser. Please click the 🔒 (Lock) icon in your browser address bar to allow Camera access.';
       } else if (errStr.includes('NotFoundError') || errStr.includes('Requested device not found')) {
-        errMsg = 'No webcam or camera device was detected on your device.';
+        errMsg = 'No webcam or camera device was detected on your computer.';
       }
       setCameraError(errMsg);
       setIsScanning(false);
     }
   };
 
-  const handleFacingModeChange = (mode) => {
-    setCameraMode(mode);
-    initAndStartCamera(mode);
+  const handleCameraChange = (e) => {
+    const newId = e.target.value;
+    setSelectedCameraId(newId);
+    initAndStartCamera(newId);
   };
 
   const playBeep = () => {
@@ -217,7 +207,7 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
         </div>
 
         {/* Tab Switcher */}
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.2rem', borderRadius: '8px', marginBottom: '0.85rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '0.2rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
           <button
             type="button"
             onClick={() => setActiveTab('camera')}
@@ -236,54 +226,24 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
           </button>
         </div>
 
-        {/* Two-Option Camera Selector: Back Camera (Default) vs Front Camera */}
-        {activeTab === 'camera' && !cameraError && (
-          <div style={{ marginBottom: '0.85rem' }}>
-            <div style={{ 
-              display: 'flex', 
-              gap: '0.4rem', 
-              background: 'rgba(0,0,0,0.25)', 
-              padding: '0.25rem', 
-              borderRadius: '8px', 
-              border: '1px solid rgba(255,255,255,0.08)' 
-            }}>
-              <button
-                type="button"
-                onClick={() => handleFacingModeChange('environment')}
-                className={`btn btn-sm ${cameraMode === 'environment' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ 
-                  flex: 1, 
-                  fontSize: '0.8rem', 
-                  borderRadius: '6px',
-                  padding: '0.35rem 0.5rem',
-                  fontWeight: cameraMode === 'environment' ? 700 : 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
-              >
-                <Camera size={13} /> Back Camera (Default)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFacingModeChange('user')}
-                className={`btn btn-sm ${cameraMode === 'user' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ 
-                  flex: 1, 
-                  fontSize: '0.8rem', 
-                  borderRadius: '6px',
-                  padding: '0.35rem 0.5rem',
-                  fontWeight: cameraMode === 'user' ? 700 : 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
-              >
-                <FlipHorizontal size={13} /> Front Camera
-              </button>
-            </div>
+        {/* Camera Selector (if multiple cameras exist) */}
+        {activeTab === 'camera' && cameras.length > 1 && !cameraError && (
+          <div style={{ marginBottom: '0.75rem', textAlign: 'left' }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+              Select Camera Device:
+            </label>
+            <select
+              className="form-input"
+              value={selectedCameraId}
+              onChange={handleCameraChange}
+              style={{ fontSize: '0.82rem', padding: '0.35rem 0.5rem' }}
+            >
+              {cameras.map((cam, idx) => (
+                <option key={cam.id} value={cam.id}>
+                  {cam.label || `Camera ${idx + 1}`}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -315,7 +275,7 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
                   <ol style={{ margin: '0.35rem 0 0 1.25rem', padding: 0, lineHeight: '1.5' }}>
                     <li>Click the 🔒 (Lock) or Site Settings icon on your browser address bar (top left).</li>
                     <li>Toggle <strong>Camera</strong> permission to <strong>Allow</strong>.</li>
-                    <li>Click <strong>Allow Camera Access</strong> below!</li>
+                    <li>Click <strong>Retry Camera</strong> below!</li>
                   </ol>
                 </div>
 
