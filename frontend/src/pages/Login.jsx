@@ -426,10 +426,10 @@ const Login = () => {
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'monospace', fontWeight: 500 }}>
-                    9392049485
+                    9989092333
                   </span>
                   <a
-                    href="tel:9392049485"
+                    href="tel:9989092333"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
