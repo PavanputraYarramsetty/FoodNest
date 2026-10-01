@@ -346,38 +346,36 @@ export default function LandingPage() {
           style={{ opacity: isMobile ? 1 : bgOpacity }}
           className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-0"
         >
-          {!isMobile && (
-            <ColorBends
-              rotation={90}
-              speed={0.2}
-              colors={['#ff4500', '#ffb703', '#f97316']}
-              transparent
-              autoRotate={0}
-              scale={1}
-              frequency={1}
-              warpStrength={1}
-              mouseInfluence={1}
-              parallax={0.5}
-              noise={0.15}
-              iterations={1}
-              intensity={1.5}
-              bandWidth={6}
-              className="w-full h-full"
-            />
-          )}
+          <ColorBends
+            rotation={90}
+            speed={0.2}
+            colors={['#ff4500', '#ffb703', '#f97316']}
+            transparent
+            autoRotate={0}
+            scale={1}
+            frequency={1}
+            warpStrength={1}
+            mouseInfluence={1}
+            parallax={0.5}
+            noise={0.15}
+            iterations={1}
+            intensity={1.5}
+            bandWidth={6}
+            className="w-full h-full"
+          />
         </motion.div>
 
         {/* Ambient background soft glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.12)_0%,transparent_70%)] pointer-events-none z-[1]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(249,115,22,0.18)_0%,transparent_70%)] pointer-events-none z-[1]" />
 
-        {/* 3D Perspective Character Container Anchored to Bottom to Prevent Any Gap */}
+        {/* 3D Perspective Character Container */}
         <motion.div
           style={{
             opacity: isMobile ? 1 : heroOpacity,
             scale: isMobile ? 1 : heroScale,
             transformOrigin: 'center bottom',
           }}
-          className="absolute bottom-0 left-0 right-0 z-10 w-full flex items-end justify-center [perspective:1200px] pointer-events-none"
+          className="absolute inset-0 sm:inset-auto sm:bottom-0 sm:left-0 sm:right-0 z-10 w-full flex items-center sm:items-end justify-center [perspective:1200px] pointer-events-none px-3 pt-12 pb-24 sm:p-0"
         >
           <motion.div
             style={{
@@ -388,18 +386,30 @@ export default function LandingPage() {
               transformStyle: 'preserve-3d',
               transformOrigin: 'center bottom',
             }}
+            animate={
+              isMobile
+                ? {
+                    y: [0, -6, 0],
+                    transition: {
+                      duration: 3.5,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    },
+                  }
+                : undefined
+            }
             whileTap={{ scale: 0.98 }}
-            className="relative h-[60vh] sm:h-auto sm:aspect-[2/1] w-full max-w-none max-h-[92vh] sm:max-h-[95vh] flex items-end justify-center px-4 sm:px-0 pb-8 sm:pb-0 translate-y-0 sm:translate-y-5 pointer-events-auto"
+            className="relative w-full max-w-[480px] sm:max-w-none sm:aspect-[2/1] sm:h-auto max-h-[80vh] sm:max-h-[95vh] flex items-center sm:items-end justify-center pointer-events-auto sm:translate-y-5"
           >
             {/* Main Character & Text Image */}
             <img
               src="/order-your-food.webp"
               alt="Order Your Food"
-              className="w-full h-full object-contain object-bottom sm:drop-shadow-[0_25px_60px_rgba(249,115,22,0.5)] select-none pointer-events-none transition-transform duration-200"
+              className="w-full h-auto sm:h-full object-contain object-center sm:object-bottom drop-shadow-[0_15px_40px_rgba(249,115,22,0.4)] sm:drop-shadow-[0_25px_60px_rgba(249,115,22,0.5)] select-none pointer-events-none transition-transform duration-200"
             />
 
             {/* Realistic Silky Continuous Steam Rising from the Pot */}
-            {!isMobile && <PotSteam />}
+            <PotSteam />
           </motion.div>
         </motion.div>
 
