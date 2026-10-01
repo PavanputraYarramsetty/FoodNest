@@ -1132,12 +1132,51 @@ router.post('/counter-sales', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Total amount must be greater than 0' });
     }
 
-    // Insert the counter order
-    const { data: order, error: orderError } = await supabase
-      .from('counter_orders')
-      .insert({ total_amount: totalAmount })
-      .select()
-      .single();
+    // Atomic / sequential receipt number generation
+    let nextReceiptNumber = 1;
+    try {
+      const { data: counterRow } = await supabase
+        .from('order_counters')
+        .select('last_value')
+        .eq('id', 'counter_sale_receipt_number')
+        .maybeSingle();
+
+      if (counterRow && counterRow.last_value !== undefined && counterRow.last_value !== null) {
+        nextReceiptNumber = Number(counterRow.last_value) + 1;
+      }
+
+      await supabase
+        .from('order_counters')
+        .upsert({ id: 'counter_sale_receipt_number', last_value: nextReceiptNumber });
+    } catch (cntErr) {
+      console.error('Error fetching/updating counter receipt number:', cntErr.message);
+    }
+
+    // Insert the counter order (attempt with receipt_number, fallback if column absent)
+    let order;
+    let orderError;
+    try {
+      const insertRes = await supabase
+        .from('counter_orders')
+        .insert({ total_amount: totalAmount, receipt_number: nextReceiptNumber })
+        .select()
+        .single();
+      order = insertRes.data;
+      orderError = insertRes.error;
+    } catch (e) {
+      orderError = e;
+    }
+
+    // Fallback if receipt_number column not present in existing table
+    if (orderError && orderError.message && orderError.message.includes('receipt_number')) {
+      const fallbackRes = await supabase
+        .from('counter_orders')
+        .insert({ total_amount: totalAmount })
+        .select()
+        .single();
+      order = fallbackRes.data;
+      orderError = fallbackRes.error;
+    }
 
     if (orderError) throw orderError;
 
@@ -1157,7 +1196,16 @@ router.post('/counter-sales', async (req, res, next) => {
 
     if (itemsError) throw itemsError;
 
-    res.status(201).json({ success: true, message: 'Counter sale recorded successfully', data: order });
+    res.status(201).json({
+      success: true,
+      message: 'Counter sale recorded successfully',
+      data: {
+        ...order,
+        receipt_number: order.receipt_number || nextReceiptNumber,
+        items: itemsToInsert,
+        created_at: order.created_at || new Date().toISOString()
+      }
+    });
 
   } catch (err) {
     next(err);
@@ -1211,18 +1259,27 @@ router.get('/counter-sales/stats', async (req, res, next) => {
   }
 });
 
-// DELETE /api/admin/counter-sales — Clear all counter sales
+// DELETE /api/admin/counter-sales — Clear all counter sales and reset counter to 1
 router.delete('/counter-sales', async (req, res, next) => {
   try {
     // Delete all counter orders (counter_order_items will be deleted automatically due to CASCADE constraint)
     const { error } = await supabase
       .from('counter_orders')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // small hack to delete all rows
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // delete all rows
 
     if (error) throw error;
 
-    res.json({ success: true, message: 'All counter sales cleared successfully.' });
+    // Reset the counter_sale_receipt_number counter to 0 so next receipt starts from 1
+    try {
+      await supabase
+        .from('order_counters')
+        .upsert({ id: 'counter_sale_receipt_number', last_value: 0 });
+    } catch (resetErr) {
+      console.error('Error resetting counter receipt number:', resetErr.message);
+    }
+
+    res.json({ success: true, message: 'All counter sales cleared and receipt number reset to 1 successfully.' });
   } catch (err) {
     next(err);
   }

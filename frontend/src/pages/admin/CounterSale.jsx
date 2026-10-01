@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { Plus, Minus, ShoppingBag, BarChart3, TrendingUp, CheckCircle, AlertCircle, UtensilsCrossed, Search, X, Zap } from 'lucide-react';
+import { Plus, Minus, ShoppingBag, BarChart3, TrendingUp, CheckCircle, AlertCircle, UtensilsCrossed, Search, X, Zap, Printer } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import AlertBanner from '../../components/ui/AlertBanner';
 import LoadingState from '../../components/ui/LoadingState';
 import MotionButton from '../../components/ui/MotionButton';
+import CounterReceiptModal from '../../components/ui/CounterReceiptModal';
 
 const CounterSale = () => {
   const [menu, setMenu] = useState([]);
@@ -17,6 +18,11 @@ const CounterSale = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  
+  // Receipt Print State
+  const [lastReceipt, setLastReceipt] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(true);
   
   const searchInputRef = useRef(null);
 
@@ -127,7 +133,14 @@ const CounterSale = () => {
     try {
       const res = await axios.post('/admin/counter-sales', { items: cartItems });
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Counter sale recorded successfully!' });
+        const recordedReceipt = res.data.data;
+        setLastReceipt(recordedReceipt);
+        setShowReceiptModal(true);
+
+        setMessage({ 
+          type: 'success', 
+          text: `Counter sale recorded successfully! Receipt #CS-${recordedReceipt.receipt_number || 1} generated.` 
+        });
         
         // Reset cart quantities
         const resetQuantities = {};
@@ -153,6 +166,26 @@ const CounterSale = () => {
   // Keyboard Shortcuts Handler
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Escape -> Close Receipt Modal or Clear search / Blur
+      if (e.key === 'Escape') {
+        if (showReceiptModal) {
+          setShowReceiptModal(false);
+          return;
+        }
+        setSearchQuery('');
+        searchInputRef.current?.blur();
+        return;
+      }
+
+      // If receipt modal is open, let Enter trigger print
+      if (showReceiptModal) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          window.print();
+          return;
+        }
+      }
+
       // Ctrl+K or '/' -> Focus Search
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
@@ -172,13 +205,6 @@ const CounterSale = () => {
         if (cartItems.length > 0 && !confirming) {
           handleConfirmSale();
         }
-        return;
-      }
-
-      // Escape -> Clear search / Blur
-      if (e.key === 'Escape') {
-        setSearchQuery('');
-        searchInputRef.current?.blur();
         return;
       }
 
@@ -214,15 +240,16 @@ const CounterSale = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [filteredMenu, selectedIndex, cartItems, confirming]);
+  }, [filteredMenu, selectedIndex, cartItems, confirming, showReceiptModal]);
 
   const handleClearStats = async () => {
-    if (!window.confirm('Are you sure you want to clear ALL counter sales statistics? This action is permanent and cannot be undone.')) return;
+    if (!window.confirm('Are you sure you want to clear ALL counter sales statistics? This will also reset the receipt counter back to 1. This action is permanent and cannot be undone.')) return;
     try {
       const res = await axios.delete('/admin/counter-sales');
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Counter sale statistics cleared successfully!' });
+        setMessage({ type: 'success', text: 'Counter sale statistics cleared and receipt counter reset to 1!' });
         setStats({ items: [], grandTotalRevenue: 0 });
+        setLastReceipt(null);
         setTimeout(() => setMessage({ type: '', text: '' }), 4000);
       }
     } catch (err) {
@@ -239,11 +266,24 @@ const CounterSale = () => {
     <div>
       <PageHeader
         title="Counter Sale"
-        subtitle="Record direct walk-in sales with high-speed POS shortcuts"
+        subtitle="Record direct walk-in sales with automatic small thermal bill printing"
         showBack={true}
         backTo="/admin/home"
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {lastReceipt && (
+              <MotionButton
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowReceiptModal(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.4rem 0.8rem' }}
+                title="Reprint last counter sale receipt"
+              >
+                <Printer size={15} />
+                <span>Reprint Bill (#CS-{lastReceipt.receipt_number || 1})</span>
+              </MotionButton>
+            )}
+
             <span 
               style={{ 
                 fontSize: '0.75rem', 
@@ -256,9 +296,9 @@ const CounterSale = () => {
                 alignItems: 'center',
                 gap: '0.35rem'
               }}
-              title="Keyboard Shortcuts: Ctrl+K to search, Enter to add, Ctrl+Enter to complete sale"
+              title="Keyboard Shortcuts: Ctrl+K to search, Enter to add, Ctrl+Enter to complete sale & print"
             >
-              <Zap size={14} /> High-Speed POS Active
+              <Zap size={14} /> POS Active
             </span>
             <MotionButton
               type="button"
@@ -601,6 +641,13 @@ const CounterSale = () => {
           </div>
         )}
       </div>
+
+      {/* Small Thermal Receipt Modal for Printing */}
+      <CounterReceiptModal
+        receipt={lastReceipt}
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+      />
     </div>
   );
 };

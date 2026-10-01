@@ -3,10 +3,14 @@
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS counter_orders (
-  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  receipt_number INTEGER,
   total_amount  NUMERIC(10,2) NOT NULL,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
+
+-- Ensure receipt_number column exists if table was already created
+ALTER TABLE counter_orders ADD COLUMN IF NOT EXISTS receipt_number INTEGER;
 
 CREATE TABLE IF NOT EXISTS counter_order_items (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,3 +26,4 @@ CREATE INDEX IF NOT EXISTS idx_counter_order_items_order_id ON counter_order_ite
 -- Disable Row Level Security (consistent with other tables in project)
 ALTER TABLE counter_orders DISABLE ROW LEVEL SECURITY;
 ALTER TABLE counter_order_items DISABLE ROW LEVEL SECURITY;
+
