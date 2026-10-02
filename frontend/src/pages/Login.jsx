@@ -27,6 +27,7 @@ const Login = () => {
   const [countdown, setCountdown] = useState(0);
 
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [verifiedEmail, setVerifiedEmail] = useState('');
   const { user, login, updateEmail, resendVerification, verifyEmail, logout, checkVerificationStatus } = useAuth();
   const navigate = useNavigate();
   const { transition } = useMotionSafe();
@@ -53,15 +54,27 @@ const Login = () => {
     const rawVal = formData.identifier.trim();
     if (!rawVal || rawVal.length < 3) {
       setIsEmailVerified(false);
+      setVerifiedEmail('');
       return;
     }
 
     const timer = setTimeout(async () => {
       try {
         const res = await checkVerificationStatus(rawVal);
-        setIsEmailVerified(!!res?.isVerified);
+        if (res?.isVerified) {
+          setIsEmailVerified(true);
+          const retrievedEmail = res.email || (rawVal.includes('@') ? rawVal : '');
+          setVerifiedEmail(retrievedEmail);
+          if (retrievedEmail) {
+            sessionStorage.setItem('foodnest_reset_email', retrievedEmail);
+          }
+        } else {
+          setIsEmailVerified(false);
+          setVerifiedEmail('');
+        }
       } catch {
         setIsEmailVerified(false);
+        setVerifiedEmail('');
       }
     }, 300);
 
@@ -336,7 +349,16 @@ const Login = () => {
           <div className="auth-footer">
             {isEmailVerified && (
               <div style={{ marginBottom: '0.45rem' }}>
-                <Link to="/forgot-password" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: '500' }}>
+                <Link
+                  to="/forgot-password"
+                  state={{ email: verifiedEmail, identifier: formData.identifier }}
+                  onClick={() => {
+                    if (verifiedEmail) {
+                      sessionStorage.setItem('foodnest_reset_email', verifiedEmail);
+                    }
+                  }}
+                  style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: '500' }}
+                >
                   Forgot Password?
                 </Link>
               </div>

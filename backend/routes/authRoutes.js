@@ -616,13 +616,15 @@ router.post('/check-verification', async (req, res) => {
       return res.json({
         success: true,
         isVerified: true,
-        isAdmin: true
+        isAdmin: true,
+        email: user.email
       });
     }
 
     return res.json({
       success: true,
-      isVerified: !!user.email_verified
+      isVerified: !!user.email_verified,
+      email: user.email
     });
   } catch (err) {
     return res.json({ success: false, isVerified: false });

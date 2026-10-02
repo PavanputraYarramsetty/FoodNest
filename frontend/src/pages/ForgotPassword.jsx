@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle, KeyRound, ShieldCheck } from 'lucide-react';
@@ -11,8 +11,13 @@ import ThemeToggleDock from '../components/ThemeToggleDock';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [step, setStep] = useState(1); // 1: Email, 2: OTP + New Password
-  const [email, setEmail] = useState('');
+  
+  const initialEmail = location.state?.email || sessionStorage.getItem('foodnest_reset_email') || '';
+  const [email, setEmail] = useState(initialEmail);
+  const [isLocked, setIsLocked] = useState(Boolean(initialEmail));
+
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,6 +31,20 @@ const ForgotPassword = () => {
   const { transition } = useMotionSafe();
   const cardRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    if (location.state?.email) {
+      setEmail(location.state.email);
+      setIsLocked(true);
+      sessionStorage.setItem('foodnest_reset_email', location.state.email);
+    } else {
+      const savedEmail = sessionStorage.getItem('foodnest_reset_email');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setIsLocked(true);
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -52,7 +71,7 @@ const ForgotPassword = () => {
 
     try {
       const res = await forgotPassword(email.trim());
-      setMessage(res.message || 'A 6-digit OTP code has been sent to your email.');
+      setMessage(res.message || 'A 6-digit OTP code has been sent to your registered email.');
       setStep(2);
       setCountdown(30); // 30 seconds cooldown
     } catch (err) {
@@ -100,6 +119,7 @@ const ForgotPassword = () => {
       });
       setMessage(res.message || 'Password reset successfully! Redirecting to login...');
       setTimeout(() => {
+        sessionStorage.removeItem('foodnest_reset_email');
         navigate('/login', { replace: true });
       }, 2000);
     } catch (err) {
@@ -176,7 +196,7 @@ const ForgotPassword = () => {
             </h1>
             <p className="auth-subtitle">
               {step === 1 
-                ? 'Enter your email address to receive a 6-digit reset code.' 
+                ? 'Click below to receive a 6-digit reset code to your email.'
                 : `Enter the 6-digit code sent to ${email} along with your new password.`}
             </p>
           </div>
@@ -204,12 +224,17 @@ const ForgotPassword = () => {
                     id="email"
                     name="email"
                     className="form-input"
-                    placeholder="Enter your registered email"
+                    placeholder="Registered email address"
                     value={email}
+                    readOnly={isLocked}
+                    disabled={isLocked}
                     onChange={(e) => {
-                      setEmail(e.target.value);
-                      setError('');
+                      if (!isLocked) {
+                        setEmail(e.target.value);
+                        setError('');
+                      }
                     }}
+                    style={isLocked ? { cursor: 'not-allowed', color: 'var(--text-primary)', opacity: 0.9 } : {}}
                     required
                   />
                 </div>
@@ -218,7 +243,7 @@ const ForgotPassword = () => {
               <MotionButton
                 type="submit"
                 className="btn btn-primary btn-lg auth-submit-btn"
-                disabled={loading}
+                disabled={loading || !email}
                 style={{ width: '100%' }}
                 id="forgot-password-submit"
               >
@@ -228,15 +253,8 @@ const ForgotPassword = () => {
           ) : (
             <form onSubmit={handleResetPassword} className="auth-form">
               <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <div style={{ marginBottom: '0.35rem' }}>
                   <label className="form-label" htmlFor="otp" style={{ margin: 0 }}>6-Digit OTP Code</label>
-                  <button
-                    type="button"
-                    onClick={() => { setStep(1); setError(''); setMessage(''); }}
-                    style={{ background: 'none', border: 'none', color: 'var(--primary-400)', fontSize: '0.78rem', cursor: 'pointer', padding: 0 }}
-                  >
-                    Change Email
-                  </button>
                 </div>
                 <div className="auth-input-wrapper">
                   <KeyRound size={18} className="auth-input-icon" />
