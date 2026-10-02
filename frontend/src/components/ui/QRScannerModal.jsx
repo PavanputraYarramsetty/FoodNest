@@ -94,7 +94,32 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
         }
       }
 
-      const camToUse = overrideCamId || selectedCameraId || (devices.length > 0 ? devices[0].id : null);
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+      const pickDefaultCamId = (devs) => {
+        if (!devs || devs.length === 0) return null;
+        if (isMobile) {
+          // Phone default: Camera 0 / Back camera (environment)
+          const backCam = devs.find(d => {
+            const label = (d.label || '').toLowerCase();
+            return label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('0');
+          });
+          return backCam ? backCam.id : devs[0].id;
+        } else {
+          // Laptop default: Camera 1 / Front camera (user / webcam)
+          const frontCam = devs.find(d => {
+            const label = (d.label || '').toLowerCase();
+            return label.includes('front') || label.includes('user') || label.includes('webcam') || label.includes('integrated') || label.includes('1');
+          });
+          if (frontCam) return frontCam.id;
+          return devs.length > 1 ? devs[1].id : devs[0].id;
+        }
+      };
+
+      const camToUse = overrideCamId || selectedCameraId || pickDefaultCamId(devices);
+      if (camToUse && !selectedCameraId) {
+        setSelectedCameraId(camToUse);
+      }
 
       if (camToUse) {
         await html5QrCode.start(
@@ -104,17 +129,20 @@ const QRScannerModal = ({ open, onClose, onScanSuccess }) => {
           () => {}
         );
       } else {
-        // Fallback constraint attempts
+        // Fallback constraint attempts based on device type
+        const primaryFacing = isMobile ? 'environment' : 'user';
+        const fallbackFacing = isMobile ? 'user' : 'environment';
+
         try {
           await html5QrCode.start(
-            { facingMode: 'user' },
+            { facingMode: primaryFacing },
             config,
             (decodedText) => handleSuccess(decodedText),
             () => {}
           );
-        } catch (errUser) {
+        } catch (errPrimary) {
           await html5QrCode.start(
-            { facingMode: 'environment' },
+            { facingMode: fallbackFacing },
             config,
             (decodedText) => handleSuccess(decodedText),
             () => {}
