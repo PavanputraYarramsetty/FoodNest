@@ -88,7 +88,7 @@ const Orders = () => {
     const steps = [
       { step: 1, label: 'Order Placed', icon: Clock },
       { step: 2, label: 'Preparing', icon: ChefHat },
-      { step: 3, label: 'Ready / Served', icon: CheckCircle2 }
+      { step: 3, label: 'Completed', icon: CheckCircle2 }
     ];
 
     return (

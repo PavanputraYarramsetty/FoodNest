@@ -28,18 +28,9 @@ const CustomerLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Show Dosa coming soon pop-up once after customer login
-  useEffect(() => {
-    if (user) {
-      const hasSeen = sessionStorage.getItem('dosa_modal_shown');
-      if (!hasSeen) {
-        setShowDosaModal(true);
-      }
-    }
-  }, [user]);
-
+  // Automatic Dosa coming soon pop-up on login disabled per user request.
+  // Component and image retained for future trigger.
   const handleCloseDosaModal = () => {
-    sessionStorage.setItem('dosa_modal_shown', 'true');
     setShowDosaModal(false);
   };
 
