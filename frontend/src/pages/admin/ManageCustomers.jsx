@@ -260,7 +260,7 @@ const ManageCustomers = () => {
                 <th style={{ minWidth: '230px' }}>Email & Verification</th>
                 <th style={{ minWidth: '140px' }}>Hostel Block</th>
                 <th style={{ minWidth: '95px' }}>Status</th>
-                <th style={{ minWidth: '115px' }}>Joined Date</th>
+                <th style={{ minWidth: '135px' }}>Joined Date & Time</th>
                 <th style={{ minWidth: '190px', width: '190px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -319,12 +319,27 @@ const ManageCustomers = () => {
                       {cust.is_blocked ? 'Blocked' : 'Active'}
                     </span>
                   </td>
-                  <td data-label="Joined Date" className="customer-date-cell">
-                    {new Date(cust.created_at).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
+                  <td data-label="Joined Date & Time" className="customer-date-cell">
+                    {cust.created_at ? (
+                      <div className="customer-date-time-wrapper">
+                        <span className="customer-date-text">
+                          {new Date(cust.created_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span className="customer-time-text">
+                          {new Date(cust.created_at).toLocaleTimeString('en-IN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </span>
+                      </div>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td data-label="Actions" style={{ textAlign: 'right' }}>
                     <div className="customer-actions-group">

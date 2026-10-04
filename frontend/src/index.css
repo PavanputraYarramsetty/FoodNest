@@ -8703,6 +8703,24 @@ body:has(.auth-page) {
   color: var(--text-muted);
 }
 
+.customer-date-time-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.customer-date-text {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+
+.customer-time-text {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 /* Actions Group and Buttons */
 .customer-actions-group {
   display: inline-flex;
