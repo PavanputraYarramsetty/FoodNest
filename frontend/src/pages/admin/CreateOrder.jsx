@@ -293,7 +293,7 @@ const CreateOrder = () => {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Current Latest: <strong style={{ color: '#fff', fontSize: '0.95rem' }}>#{orderCounter.currentLastNumber || 0}</strong>
+                Current Latest: <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>#{orderCounter.currentLastNumber || 0}</strong>
               </span>
               <span style={{ color: 'var(--text-muted)' }}>|</span>
               <span style={{ fontSize: '0.85rem', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -411,8 +411,8 @@ const CreateOrder = () => {
                         style={{
                           padding: '0.65rem 0.85rem',
                           borderRadius: '10px',
-                          border: selectedCustomerId === cust.id ? '2px solid var(--primary-500)' : '1px solid rgba(255,255,255,0.08)',
-                          background: selectedCustomerId === cust.id ? 'rgba(249, 115, 22, 0.12)' : 'rgba(255,255,255,0.02)',
+                          border: selectedCustomerId === cust.id ? '2px solid var(--primary-500)' : '1px solid var(--border-color)',
+                          background: selectedCustomerId === cust.id ? 'rgba(249, 115, 22, 0.12)' : 'var(--bg-card)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -421,7 +421,7 @@ const CreateOrder = () => {
                         }}
                       >
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff' }}>{cust.name}</div>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{cust.name}</div>
                           <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem' }}>
                             <span>📞 {cust.phone || 'N/A'}</span>
                             <span>🏢 {cust.hostel_block || 'N/A'}</span>
@@ -545,8 +545,8 @@ const CreateOrder = () => {
                     <div
                       key={item.id}
                       style={{
-                        background: qty > 0 ? 'rgba(249, 115, 22, 0.08)' : 'rgba(255,255,255,0.02)',
-                        border: qty > 0 ? '1.5px solid var(--primary-500)' : '1px solid rgba(255,255,255,0.07)',
+                        background: qty > 0 ? 'rgba(249, 115, 22, 0.08)' : 'var(--bg-card)',
+                        border: qty > 0 ? '1.5px solid var(--primary-500)' : '1px solid var(--border-color)',
                         borderRadius: '10px',
                         padding: '0.65rem 0.75rem',
                         display: 'flex',
@@ -575,18 +575,18 @@ const CreateOrder = () => {
                           </span>
                         </div>
 
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#fff', marginBottom: '0.5rem', lineHeight: '1.2' }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '0.5rem', lineHeight: '1.2' }}>
                           {item.item_name}
                         </div>
                       </div>
 
                       {/* Small Stepper */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', padding: '0.15rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-input)', borderRadius: '6px', padding: '0.15rem' }}>
                         <button
                           type="button"
                           onClick={() => handleDecrement(item.id)}
                           className="btn btn-ghost btn-sm"
-                          style={{ padding: '0.25rem 0.45rem', height: 'auto', minWidth: '28px', color: qty > 0 ? '#fff' : 'var(--text-muted)' }}
+                          style={{ padding: '0.25rem 0.45rem', height: 'auto', minWidth: '28px', color: qty > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}
                           disabled={qty === 0}
                         >
                           <Minus size={12} />
@@ -632,14 +632,14 @@ const CreateOrder = () => {
           </h3>
 
           {/* Customer Badge */}
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '1rem' }}>
+          <div style={{ background: 'var(--bg-card)', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Target Customer
             </div>
             {customerMode === 'existing' ? (
               selectedCustomerObj ? (
                 <div style={{ marginTop: '0.25rem' }}>
-                  <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem' }}>{selectedCustomerObj.name}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{selectedCustomerObj.name}</div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                     📞 {selectedCustomerObj.phone} | 🏢 {selectedCustomerObj.hostel_block}
                   </div>
@@ -652,7 +652,7 @@ const CreateOrder = () => {
             ) : (
               newCustomerDetails.name ? (
                 <div style={{ marginTop: '0.25rem' }}>
-                  <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem' }}>{newCustomerDetails.name}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{newCustomerDetails.name}</div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                     📞 {newCustomerDetails.phone || 'Pending'} | 🏢 {newCustomerDetails.hostel_block}
                   </div>
@@ -672,7 +672,7 @@ const CreateOrder = () => {
             </div>
 
             {cartItems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '1.5rem', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '10px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              <div style={{ textAlign: 'center', padding: '1.5rem', border: '1px dashed var(--border-light)', borderRadius: '10px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 No items added yet. Click <strong>+</strong> on any menu item.
               </div>
             ) : (
@@ -684,14 +684,14 @@ const CreateOrder = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      background: 'rgba(255,255,255,0.02)',
+                      background: 'var(--bg-card)',
                       padding: '0.4rem 0.6rem',
                       borderRadius: '6px',
                       fontSize: '0.85rem'
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0, paddingRight: '0.5rem' }}>
-                      <div style={{ fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {item.name}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -747,7 +747,7 @@ const CreateOrder = () => {
           </div>
 
           {/* Total & Submit Button */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Amount</span>
               <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary-400)' }}>

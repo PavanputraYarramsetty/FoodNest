@@ -1265,6 +1265,15 @@ body.sidebar-is-collapsed .main-content {
   box-shadow: var(--glass-shadow);
 }
 
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--glass-shadow);
+}
+
 /* Stat Cards */
 .stats-grid {
   display: grid;
@@ -9065,4 +9074,19 @@ body:has(.auth-page) {
   }
 }
 
+/* ======================== ADMIN CREATE ORDER - LIGHT MODE OVERRIDES ======================== */
+[data-theme="light"] .admin-create-order-counter-banner {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.06) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border-color: rgba(249, 115, 22, 0.2);
+}
+
+[data-theme="light"] .admin-create-order-counter-input-box {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .admin-create-order-customer-tabs {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--border-color);
+}
 
