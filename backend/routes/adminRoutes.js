@@ -501,6 +501,16 @@ router.put('/orders/:id', async (req, res) => {
       // Run email sending asynchronously so we don't block the API response
       (async () => {
         try {
+          // Check if email notification is enabled for this status
+          const { getEmailNotifyEnabled } = require('../settings');
+          const notifyType = status === 'Preparing' ? 'preparing' : 'completed';
+          const isNotifyEnabled = await getEmailNotifyEnabled(notifyType);
+          
+          if (!isNotifyEnabled) {
+            console.log(`Email notification for "${status}" is disabled. Skipping email.`);
+            return;
+          }
+
           const { data: settings } = await supabase
             .from('admin_settings')
             .select('*')
@@ -1331,4 +1341,60 @@ router.put('/settings', async (req, res) => {
   }
 });
 
+// ============== EMAIL NOTIFICATION TOGGLES ==============
+
+// GET /api/admin/settings/email-notify — Get email notification toggle states
+router.get('/settings/email-notify', async (req, res) => {
+  try {
+    const { getEmailNotifyEnabled } = require('../settings');
+    const [preparing, completed] = await Promise.all([
+      getEmailNotifyEnabled('preparing'),
+      getEmailNotifyEnabled('completed')
+    ]);
+    res.json({
+      success: true,
+      data: {
+        email_notify_preparing: preparing,
+        email_notify_completed: completed
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// PUT /api/admin/settings/email-notify — Update email notification toggle states
+router.put('/settings/email-notify', async (req, res) => {
+  try {
+    const { email_notify_preparing, email_notify_completed } = req.body;
+    const { setEmailNotifyEnabled } = require('../settings');
+
+    if (email_notify_preparing !== undefined) {
+      await setEmailNotifyEnabled('preparing', Boolean(email_notify_preparing));
+    }
+    if (email_notify_completed !== undefined) {
+      await setEmailNotifyEnabled('completed', Boolean(email_notify_completed));
+    }
+
+    // Return updated state
+    const { getEmailNotifyEnabled } = require('../settings');
+    const [preparing, completed] = await Promise.all([
+      getEmailNotifyEnabled('preparing'),
+      getEmailNotifyEnabled('completed')
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        email_notify_preparing: preparing,
+        email_notify_completed: completed
+      },
+      message: 'Email notification settings updated successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
+
