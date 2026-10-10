@@ -36,13 +36,6 @@ const TrendingFoodCard = ({ item, isTopOne = false }) => {
             <Flame size={14} className="trending-flame-icon" />
             <span>{isTopOne ? '#1 Trending Today' : 'Trending Today'}</span>
           </span>
-
-          {/* Portion Count Metric */}
-          {item.orders_today > 0 && (
-            <span className="trending-count-tag" title="Total portions ordered today">
-              <strong>{item.orders_today}</strong> ordered today
-            </span>
-          )}
         </div>
 
         {/* Food Image Container */}
